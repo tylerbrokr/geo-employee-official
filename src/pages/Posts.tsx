@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 type PostStatus = "Published" | "Scheduled";
 interface Post {
@@ -32,62 +33,66 @@ export default function Posts() {
 
   return (
     <DashboardLayout>
-      <div className="mb-2">
-        <h1 className="page-title">Posts</h1>
-        <p className="section-label mt-2">YOUR CONTENT ENGINE HAS PUBLISHED 14 POSTS</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-6 border-b border-border mt-6 mb-6">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="findr-card !p-0">
-        <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-3 border-b border-border">
-          <span className="section-label">Post</span>
-          <span className="section-label">Date</span>
-          <span className="section-label">Status</span>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <div className="mb-2">
+          <h1 className="page-title">Posts</h1>
+          <p className="section-label mt-2">YOUR CONTENT ENGINE HAS PUBLISHED 14 POSTS</p>
         </div>
-        {filtered.map((post) => (
-          <div
-            key={post.title}
-            className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{post.query}</p>
-            </div>
-            <span className="text-[13px] text-muted-foreground self-center">{post.date}</span>
-            <span className="self-center flex items-center gap-1.5">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  post.status === "Published" ? "bg-emerald" : "bg-muted-foreground/50"
-                }`}
-              />
-              <span
-                className={`text-xs ${
-                  post.status === "Published" ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {post.status}
-              </span>
-            </span>
+
+        {/* Tabs */}
+        <div className="flex gap-6 mt-6 mb-6">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`pb-3 text-sm font-medium transition-all duration-200 border-b-2 -mb-px ${
+                tab === t
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="fading-divider mb-6" />
+
+        {/* Table */}
+        <div className="findr-card !p-0">
+          <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-3">
+            <span className="section-label">Post</span>
+            <span className="section-label">Date</span>
+            <span className="section-label">Status</span>
           </div>
-        ))}
-      </div>
+          <div className="fading-divider mx-6" />
+          {filtered.map((post, i) => (
+            <div key={post.title}>
+              <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{post.query}</p>
+                </div>
+                <span className="text-[13px] text-muted-foreground self-center">{post.date}</span>
+                <span className="self-center flex items-center gap-1.5">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      post.status === "Published" ? "bg-emerald" : "bg-muted-foreground/50"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs ${
+                      post.status === "Published" ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {post.status}
+                  </span>
+                </span>
+              </div>
+              {i < filtered.length - 1 && <div className="fading-divider mx-6" />}
+            </div>
+          ))}
+        </div>
+      </motion.div>
     </DashboardLayout>
   );
 }
