@@ -64,10 +64,16 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[260px] bg-sidebar flex flex-col z-50">
+    <aside
+      className="fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50"
+      style={{
+        background: 'linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(222 55% 7%) 100%)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
       {/* Logo */}
       <div className="px-6 py-6 flex items-center gap-2.5">
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald" />
+        <span className="w-2.5 h-2.5 rounded-full bg-emerald emerald-pulse" />
         <span className="text-xl font-bold text-white tracking-tight">FindR</span>
       </div>
 
@@ -80,11 +86,14 @@ export function AppSidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 relative ${
                   active
-                    ? "text-white bg-white/5"
-                    : "text-sidebar-foreground hover:text-white hover:bg-white/[0.08]"
+                    ? "text-white"
+                    : "text-sidebar-foreground hover:text-white hover:bg-white/[0.06]"
                 }`}
+                style={active ? {
+                  background: 'linear-gradient(90deg, rgba(5,150,105,0.15) 0%, transparent 100%)',
+                } : undefined}
               >
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald" />
@@ -96,7 +105,7 @@ export function AppSidebar() {
           })}
         </div>
 
-        <div className="my-4 mx-3 h-px bg-white/10" />
+        <div className="my-4 mx-3 h-px bg-white/[0.06]" />
 
         <div className="space-y-0.5">
           {bottomItems.map((item) => {
@@ -105,11 +114,14 @@ export function AppSidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 relative ${
                   active
-                    ? "text-white bg-white/5"
-                    : "text-sidebar-foreground hover:text-white hover:bg-white/[0.08]"
+                    ? "text-white"
+                    : "text-sidebar-foreground hover:text-white hover:bg-white/[0.06]"
                 }`}
+                style={active ? {
+                  background: 'linear-gradient(90deg, rgba(5,150,105,0.15) 0%, transparent 100%)',
+                } : undefined}
               >
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald" />
@@ -123,7 +135,7 @@ export function AppSidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-5 py-5 border-t border-white/10 flex items-center gap-3">
+      <div className="px-5 py-5 border-t border-white/[0.06] flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-medium text-white">
           SJ
         </div>
