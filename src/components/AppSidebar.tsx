@@ -136,7 +136,7 @@ export function AppSidebar() {
 
       {/* User */}
       <div className="px-5 py-5 border-t border-white/[0.06] flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-medium text-white">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
           SJ
         </div>
         <div className="min-w-0">

@@ -52,7 +52,7 @@ export default function Market() {
         </div>
 
         <div className="space-y-8">
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">PRIMARY MARKET</p>
             <div className="flex items-center gap-3">
               <span className="text-lg font-semibold text-foreground">Omaha, Nebraska</span>
