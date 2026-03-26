@@ -8,10 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-btn hover:bg-emerald-hover hover:-translate-y-px hover:shadow-btn-hover",
+        default: "bg-primary text-primary-foreground hover:bg-emerald-hover hover:-translate-y-px shadow-[0_1px_3px_rgba(5,150,105,0.3),0_4px_12px_-2px_rgba(5,150,105,0.25)] hover:shadow-[0_2px_6px_rgba(5,150,105,0.35),0_8px_20px_-4px_rgba(5,150,105,0.3)]",
         destructive: "bg-danger-bg text-danger hover:bg-danger-bg/80",
-        outline: "border border-input bg-secondary text-secondary-foreground shadow-btn hover:bg-muted hover:-translate-y-px hover:shadow-btn-hover",
-        secondary: "border border-input bg-secondary text-secondary-foreground shadow-btn hover:bg-muted hover:-translate-y-px hover:shadow-btn-hover",
+        outline: "border border-input bg-secondary text-secondary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-muted hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        secondary: "border border-input bg-secondary text-secondary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-muted hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
         ghost: "hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
