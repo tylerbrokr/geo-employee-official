@@ -8,8 +8,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         className="flex-1 ml-[260px] min-h-screen"
         style={{
           background: `
-            radial-gradient(ellipse at top right, rgba(5,150,105,0.03), transparent 60%),
-            hsl(210 40% 98%)
+            radial-gradient(ellipse at top right, rgba(5,150,105,0.06), transparent 50%),
+            radial-gradient(ellipse at bottom left, rgba(15,23,42,0.03), transparent 60%),
+            hsl(216 20% 95%)
           `,
         }}
       >

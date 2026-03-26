@@ -74,6 +74,7 @@ export default function Dashboard() {
             <motion.div
               key={s.label}
               className="findr-card relative"
+              style={{ borderTop: '2px solid hsl(160 84% 30%)' }}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.06, duration: 0.3 }}

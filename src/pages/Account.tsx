@@ -14,8 +14,8 @@ export default function Account() {
             <p className="section-label mb-4">PROFILE</p>
             <div className="findr-card">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground shrink-0">
-                  SJ
+                 <div className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-semibold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
+                   SJ
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-semibold text-foreground">Sarah Jones</p>

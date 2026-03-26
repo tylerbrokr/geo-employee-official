@@ -71,7 +71,7 @@ export default function MySite() {
               </div>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
                   SJ
                 </div>
                 <button className="text-sm text-primary hover:text-emerald-hover transition-colors">Update Photo</button>

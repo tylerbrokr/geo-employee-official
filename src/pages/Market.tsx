@@ -52,7 +52,7 @@ export default function Market() {
         </div>
 
         <div className="space-y-8">
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">PRIMARY MARKET</p>
             <div className="flex items-center gap-3">
               <span className="text-lg font-semibold text-foreground">Omaha, Nebraska</span>
@@ -60,7 +60,7 @@ export default function Market() {
             </div>
           </div>
 
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">SURROUNDING CITIES</p>
             <div className="flex flex-wrap gap-2">
               {cities.map((c) => (
@@ -73,7 +73,7 @@ export default function Market() {
             </div>
           </div>
 
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">NEIGHBORHOODS</p>
             <div className="flex flex-wrap gap-2">
               {neighborhoods.map((n) => (
@@ -86,7 +86,7 @@ export default function Market() {
             </div>
           </div>
 
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">COUNTIES</p>
             <div className="flex flex-wrap gap-2">
               {counties.map((c) => (
@@ -99,7 +99,7 @@ export default function Market() {
             </div>
           </div>
 
-          <div>
+          <div className="findr-card">
             <p className="section-label mb-3">YOUR SPECIALTIES</p>
             <div className="flex flex-wrap gap-2">
               {specialties.map((s, i) => (
