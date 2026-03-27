@@ -134,6 +134,17 @@ export function AppSidebar() {
         </div>
       </nav>
 
+      {/* Setup Guide */}
+      <div className="px-3 mb-2">
+        <NavLink
+          to="/onboarding"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground hover:text-white hover:bg-white/[0.06] transition-all"
+        >
+          <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="9" r="7.5"/><path d="M9 5.5v4M9 12.5h.01"/></svg>
+          Setup Guide
+        </NavLink>
+      </div>
+
       {/* User */}
       <div className="px-5 py-5 border-t border-white/[0.06] flex items-center gap-3">
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
