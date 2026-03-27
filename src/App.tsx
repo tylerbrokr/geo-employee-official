@@ -8,6 +8,7 @@ import Posts from "./pages/Posts";
 import MySite from "./pages/MySite";
 import Market from "./pages/Market";
 import Account from "./pages/Account";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/my-site" element={<MySite />} />
           <Route path="/market" element={<Market />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
