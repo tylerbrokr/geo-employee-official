@@ -1,71 +1,51 @@
 
 
-# Adding Real Depth and Premium Feel to FindR
+# Build the FindR Onboarding Wizard
 
-## The Core Problem
+The onboarding wizard doesn't exist yet — no file, no route. This is a full build from scratch.
 
-Looking at the screenshot, the issue is clear: white cards sitting on a near-white background (`#F8FAFC`) with barely-visible shadows. The gradient border — the one signature detail that gave cards identity — got removed. Everything blends together into a flat white sheet. There's no visual separation, no material quality, no reason to believe this costs $197/month.
+## What we're building
 
-## What Needs to Change
+A standalone 5-step full-screen wizard at `/onboarding` with no sidebar or nav. Centered 600px card, signature gradient border, smooth step transitions, and a launch loading sequence that transitions into the dashboard.
 
-### 1. Bring back the gradient border — but better
-The original emerald-to-navy gradient border was the right idea but executed too subtly. This time, implement it as a `::before` pseudo-element with a 1.5px visible border using `border-image: linear-gradient(135deg, #059669, #0F172A) 1`. Apply it to `.findr-card` and `.findr-card-elevated`. This is the signature detail — it should be noticeable without being loud.
+## Architecture
 
-**Files:** `src/index.css`
+One main file `src/pages/Onboarding.tsx` containing all step components inline (keeps it self-contained), plus a route in `App.tsx`.
 
-### 2. Increase shadow intensity significantly
-The current shadows are barely perceptible. Bump up opacity values:
-- `.findr-card`: `0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -4px rgba(0,0,0,0.10)` — noticeably lifted
-- `.findr-card-elevated`: `0 2px 4px rgba(0,0,0,0.06), 0 12px 40px -8px rgba(0,0,0,0.14)` — clearly floating
-- Hover states increase these further
+## Implementation
 
-**Files:** `src/index.css`
+### 1. Create `src/pages/Onboarding.tsx`
 
-### 3. Darken the page background for contrast
-Change `--background` from `210 40% 98%` (nearly white) to `216 20% 95%` — a slightly cooler, darker gray that gives white cards actual contrast. Also strengthen the radial gradient in `DashboardLayout` so there's a visible warm-to-cool shift across the page.
+**Layout shell**: Full-screen `#F8FAFC` background, centered card (600px, white, 40px padding, 16px radius, `findr-card` class for gradient border). FindR wordmark above the card.
 
-**Files:** `src/index.css`, `src/components/DashboardLayout.tsx`
+**Step progress bar**: 5 nodes connected by lines. Active = emerald, completed = navy, upcoming = gray. Labels: "You", "Market", "Specialties", "Brand", "Launch".
 
-### 4. Add inner glow and top highlight to cards
-Add a `::after` pseudo-element or inset shadow to cards: `inset 0 1px 0 rgba(255,255,255,0.8)` — this simulates a top-edge light reflection, the kind of detail Apple uses to make elements feel like physical objects with light hitting them.
+**Step transitions**: `framer-motion` `AnimatePresence` with horizontal slide (enter from right, exit to left). Direction reverses when going back.
 
-**Files:** `src/index.css`
+**Steps**:
+- **Step 1 — About You**: Name, brokerage, years (select dropdown), photo upload (dashed border area with circular preview on upload)
+- **Step 2 — Your Market**: Primary city, state (all 50 US states select), then 3 tag-input sections (Surrounding Cities, Neighborhoods, Counties) with pre-filled chips and Enter/comma to add
+- **Step 3 — Specialties**: 10 toggle chips in a wrapping grid. 4 pre-selected. Active = emerald fill, inactive = bordered gray
+- **Step 4 — Your Brand**: Two color pickers (primary/accent) with hex input, preview strip, logo upload area
+- **Step 5 — Review & Launch**: Summary card showing all entered data, full-width "Launch My FindR Site →" CTA button
 
-### 5. Hero card gets special treatment
-The elevated card (hero/subscription) should have a very subtle emerald-tinted gradient background — not flat white but `linear-gradient(135deg, rgba(5,150,105,0.03) 0%, rgba(255,255,255,1) 40%)`. This makes it feel warm and premium, distinct from regular cards.
+**Launch loading**: Replaces card content with spinner + 3 sequential status lines appearing at 0s, 1.5s, 3s. After 4s, navigates to `/dashboard`.
 
-**Files:** `src/index.css`
+**Navigation**: Back/Next buttons at card bottom. No Back on step 1. Next validates nothing (mock mode). Step 5 replaces Next with the Launch CTA.
 
-### 6. Stat cards — add emerald accent strip
-Each stat card gets a thin 2px emerald bar at the top (via `border-top: 2px solid hsl(var(--emerald))`). This gives them visual weight and connects them to the brand without being heavy.
+### 2. Update `src/App.tsx`
 
-**Files:** `src/pages/Dashboard.tsx`
+Add `/onboarding` route pointing to the new page.
 
-### 7. Section backgrounds for content grouping
-The "Recent Posts" list and the posts table should sit inside a card that feels distinct. Add a subtle `bg-muted/30` background behind section groups on pages that currently have floating content (Market page sections, Account sections).
+### 3. Add sidebar link for testing
 
-**Files:** `src/pages/Market.tsx`, `src/pages/Account.tsx`, `src/pages/MySite.tsx`
+Add a small "Setup Guide" link at the bottom of `AppSidebar.tsx` that navigates to `/onboarding`.
 
-### 8. Button depth refinement
-Primary buttons need more shadow: `0 1px 3px rgba(5,150,105,0.3), 0 4px 12px -2px rgba(5,150,105,0.25)` — a colored shadow that matches the button, not just generic black. This is a modern Apple technique that makes buttons feel like glowing elements.
+## Files
 
-**Files:** `src/components/ui/button.tsx`
-
-### 9. Avatar and profile elements
-The "SJ" avatar circles are flat gray. Give them a gradient background (`linear-gradient(135deg, #059669, #047857)`) with white text — this adds a pop of brand color and makes user elements feel personalized.
-
-**Files:** `src/components/AppSidebar.tsx`, `src/pages/Account.tsx`, `src/pages/MySite.tsx`
-
-## Summary of file changes
-
-| File | Changes |
-|------|---------|
-| `src/index.css` | Gradient borders back on cards, stronger shadows, darker page bg, inner glow, elevated card tint |
-| `src/components/DashboardLayout.tsx` | Stronger background gradient |
-| `src/pages/Dashboard.tsx` | Emerald top accent on stat cards |
-| `src/components/ui/button.tsx` | Emerald-tinted shadow on primary buttons |
-| `src/components/AppSidebar.tsx` | Gradient avatar |
-| `src/pages/Account.tsx` | Gradient avatar, section card wrappers |
-| `src/pages/MySite.tsx` | Gradient avatar, card depth |
-| `src/pages/Market.tsx` | Section card wrappers for grouping |
+| File | Action |
+|------|--------|
+| `src/pages/Onboarding.tsx` | Create — entire wizard |
+| `src/App.tsx` | Add route |
+| `src/components/AppSidebar.tsx` | Add testing link |
 
