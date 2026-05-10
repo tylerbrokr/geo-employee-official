@@ -110,8 +110,9 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${serviceKey}`,
-            apikey: serviceKey,
+            // Forward the admin caller's JWT — the gateway rejects raw service-role keys.
+            Authorization: authHeader,
+            apikey: anonKey,
           },
           body: JSON.stringify({
             templateName: "client-intake-invite",
