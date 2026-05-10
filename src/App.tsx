@@ -20,6 +20,7 @@ import AdminClientDetail from "./pages/admin/ClientDetail";
 import AdminPostsQueue from "./pages/admin/PostsQueue";
 import AdminPostEditor from "./pages/admin/PostEditor";
 import AdminChangeRequests from "./pages/admin/ChangeRequests";
+import AdminEmails from "./pages/admin/Emails";
 
 const queryClient = new QueryClient();
 
