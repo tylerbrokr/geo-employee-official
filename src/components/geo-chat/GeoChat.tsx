@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUp, Pencil, X, Check } from "lucide-react";
+import { ArrowUp, Pencil, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
