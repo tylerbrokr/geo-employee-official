@@ -4,7 +4,7 @@ import { ArrowUp, Pencil, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark, BrandLockup } from "@/components/BrandMark";
 import { SCRIPT, ScriptStep, US_STATES } from "./script";
 
 // ----- Types -----
@@ -38,7 +38,7 @@ const EMPTY: FormState = {
   primaryColor: "#1a1a1a", accentColor: "#c9a96e",
 };
 
-interface TurnGeo { kind: "geo"; id: string; text: string }
+interface TurnGeo { kind: "geo"; id: string; text: string; hint?: boolean }
 interface TurnUser { kind: "user"; stepId: string; value: any; reactionId?: string; edited?: boolean }
 type Turn = TurnGeo | TurnUser;
 
@@ -98,6 +98,7 @@ export default function GeoChat() {
       for (let i = 0; i < SCRIPT.length; i++) {
         const step = SCRIPT[i];
         step.prompt.forEach((p) => replay.push({ kind: "geo", id: `${step.id}-${p}`, text: p }));
+        if (step.hint) replay.push({ kind: "geo", id: `${step.id}-hint`, text: step.hint, hint: true });
         if (!step.input) continue;
         const val = (loaded as any)[step.id];
         const isEmpty = Array.isArray(val) ? val.length === 0 : !val;
@@ -136,6 +137,9 @@ export default function GeoChat() {
         setTyping(true);
         await delay(550);
       }
+    }
+    if (step.hint) {
+      setTurns((t) => [...t, { kind: "geo", id: `${step.id}-hint-${Date.now()}`, text: step.hint!, hint: true }]);
     }
     setTyping(false);
     if (step.input) {
@@ -331,15 +335,10 @@ export default function GeoChat() {
       {/* Top bar */}
       <header className="flex-shrink-0 border-b border-ink/[0.08] bg-white">
         <div className="max-w-[640px] mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 bg-ink flex items-center justify-center">
-            <BrandMark size={20} />
-          </div>
-          <div>
-            <div className="text-[14px] font-medium text-ink leading-tight">GEO</div>
-            <div className="text-[11px] text-ink/50 leading-tight flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(160,84%,30%)]" />
-              Your AI employee
-            </div>
+          <BrandLockup markSize={28} wordmarkSize={22} />
+          <div className="ml-auto text-[11px] text-ink/50 leading-tight flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[hsl(160,84%,30%)]" />
+            Your AI employee
           </div>
         </div>
       </header>
@@ -359,6 +358,13 @@ export default function GeoChat() {
                     >
                       Take me to my portal
                     </button>
+                  </GeoBubble>
+                );
+              }
+              if (turn.hint) {
+                return (
+                  <GeoBubble key={i} hint>
+                    <span className="text-[12px] italic text-ink/55 leading-[1.45]">{turn.text}</span>
                   </GeoBubble>
                 );
               }
@@ -439,13 +445,13 @@ async function fetchReaction(step: ScriptStep, value: any, data: FormState): Pro
 }
 
 // ----- Bubbles -----
-function GeoBubble({ children }: { children: React.ReactNode }) {
+function GeoBubble({ children, hint }: { children: React.ReactNode; hint?: boolean }) {
   return (
-    <div className="flex items-end gap-2 max-w-[80%] animate-fade-in">
-      <div className="flex-shrink-0 w-7 h-7 bg-ink flex items-center justify-center mb-0.5">
-        <BrandMark size={14} />
+    <div className="flex items-start gap-2 max-w-[80%] animate-fade-in">
+      <div className="flex-shrink-0 w-6 flex items-start justify-center pt-1.5">
+        {hint ? <span className="w-1.5 h-1.5 rounded-full bg-ink/15 mt-1" /> : <BrandMark size={22} />}
       </div>
-      <div className="bg-[#faf8f4] border border-ink/[0.06] px-4 py-2.5 rounded-[18px] rounded-bl-[4px]">
+      <div className={`${hint ? "bg-transparent border-0 px-0 py-0" : "bg-[#faf8f4] border border-ink/[0.06] px-4 py-2.5 rounded-[18px] rounded-bl-[4px]"}`}>
         {children}
       </div>
     </div>

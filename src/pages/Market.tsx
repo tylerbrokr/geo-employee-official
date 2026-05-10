@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useClient } from "@/hooks/useClient";
+import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 
 function TagChip({ label }: { label: string }) {
   return (
@@ -16,11 +17,13 @@ export default function Market() {
   const { client } = useClient();
   const [market, setMarket] = useState<any>(null);
   const [specialties, setSpecialties] = useState<string[]>([]);
+  const [topicCount, setTopicCount] = useState<number>(0);
 
   useEffect(() => {
     if (!client) return;
     supabase.from("client_markets").select("*").eq("client_id", client.id).maybeSingle().then(({ data }) => setMarket(data));
     supabase.from("client_specialties").select("specialty").eq("client_id", client.id).then(({ data }) => setSpecialties((data ?? []).map((s: any) => s.specialty)));
+    supabase.from("client_topics").select("id", { count: "exact", head: true }).eq("client_id", client.id).then(({ count }) => setTopicCount(count ?? 0));
   }, [client]);
 
   return (
@@ -32,6 +35,16 @@ export default function Market() {
             This data powers your content engine. To make changes, use the <strong>Request a Change</strong> button in the sidebar.
           </p>
         </div>
+
+        {topicCount === 0 && client && client.site_status !== "live" && (
+          <div className="mb-8">
+            <SiteBuildStatus
+              client={client as any}
+              variant="slim"
+              slimMessage="GEO is researching your market. Topics will appear here once research is complete."
+            />
+          </div>
+        )}
 
         <div className="space-y-8">
           <div className="findr-card">

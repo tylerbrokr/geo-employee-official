@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useClient } from "@/hooks/useClient";
 import { supabase } from "@/integrations/supabase/client";
+import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -50,28 +51,34 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="findr-card-elevated mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="section-label mb-2">YOUR GEO SITE</p>
-              <p className="text-base font-semibold text-primary">{client?.site_url ?? "Not yet provisioned"}</p>
-              {client?.site_url && (
-                <div className="flex gap-3 mt-4">
-                  <Button variant="default" size="sm" asChild><a href={client.site_url} target="_blank" rel="noreferrer">Visit Site</a></Button>
-                </div>
-              )}
-            </div>
-            <div className="hidden sm:flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-12 h-12">
-                <span className={`w-3 h-3 rounded-full ${client?.site_status === "live" ? "bg-emerald emerald-pulse" : "bg-muted-foreground/40"}`} />
-              </div>
+        {client?.site_status === "live" ? (
+          <div className="findr-card-elevated mb-8">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium capitalize">{client?.site_status ?? "pending"}</p>
-                <p className="text-xs text-muted-foreground">{client?.site_status === "live" ? "Auto-publishing" : "We're on it"}</p>
+                <p className="section-label mb-2">YOUR GEO SITE</p>
+                <p className="text-base font-semibold text-primary">{client?.site_url ?? "Not yet provisioned"}</p>
+                {client?.site_url && (
+                  <div className="flex gap-3 mt-4">
+                    <Button variant="default" size="sm" asChild><a href={client.site_url} target="_blank" rel="noreferrer">Visit Site</a></Button>
+                  </div>
+                )}
+              </div>
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="relative flex items-center justify-center w-12 h-12">
+                  <span className="w-3 h-3 rounded-full bg-emerald emerald-pulse" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium capitalize">{client?.site_status}</p>
+                  <p className="text-xs text-muted-foreground">Auto-publishing</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : client ? (
+          <div className="mb-8">
+            <SiteBuildStatus client={client as any} />
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {[

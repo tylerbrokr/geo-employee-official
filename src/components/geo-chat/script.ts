@@ -29,6 +29,8 @@ export interface ScriptStep {
   fallback: string;
   // When true, GEO posts a short reaction after this answer. Default false.
   reactAfter?: boolean;
+  // Optional persistent example shown under the question.
+  hint?: string;
 }
 
 export const US_STATES = [
@@ -128,18 +130,21 @@ export const SCRIPT: ScriptStep[] = [
     id: "voice",
     prompt: ["Now help me sound like you. How would you describe your voice?"],
     input: { type: "textarea", placeholder: "Warm and direct. No real-estate jargon." },
+    hint: `e.g. "Warm but direct. No jargon. Sound like a friend who happens to know the market."`,
     fallback: "Got it.",
   },
   {
     id: "valuesText",
     prompt: ["What do you stand for?"],
     input: { type: "textarea", placeholder: "Honesty over hype. Local knowledge." },
+    hint: `e.g. "Honesty over hype. Local first. Clients before commissions."`,
     fallback: "Noted.",
   },
   {
     id: "idealClient",
     prompt: ["Who's your ideal client?"],
     input: { type: "textarea", placeholder: "Young families relocating, first-time buyers in their 30s..." },
+    hint: `e.g. "Young families relocating from out of state, first-time buyers in their early 30s, downsizers who've owned for 20+ years."`,
     fallback: "Clear picture.",
     reactAfter: true,
   },
@@ -147,6 +152,7 @@ export const SCRIPT: ScriptStep[] = [
     id: "brokerageStory",
     prompt: ["Tell me your story. How'd you get here?"],
     input: { type: "textarea", placeholder: "Started in 2018 after a career in teaching..." },
+    hint: `e.g. "Spent 10 years in hospitality, switched to real estate in 2019 after helping my parents sell. Joined Compass last year."`,
     fallback: "Good background.",
     reactAfter: true,
   },
@@ -154,6 +160,7 @@ export const SCRIPT: ScriptStep[] = [
     id: "differentiators",
     prompt: ["What makes you the best choice in your market?"],
     input: { type: "textarea", placeholder: "Lifelong local. 60+ closings a year." },
+    hint: `e.g. "Lifelong local. 60+ closings a year. Only agent in town who handles the inspection walkthrough personally."`,
     fallback: "That's your edge.",
   },
   {

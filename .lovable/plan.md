@@ -1,45 +1,81 @@
-## Two fixes for the GEO chat intake
+## Three polish passes for the GEO chat + portal
 
-### 1. Make GEO react less often (so it stops feeling fake)
+### 1. Lose the black-box GEO avatar
 
-Right now GEO posts an AI-written reaction after every single answer. Twenty in a row makes it feel performative. Cut it down so reactions land only on moments where a real teammate would actually say something.
+GEO's avatar is currently the ten-dot mark on a solid `bg-ink` square (header at 36px, every GEO bubble at 28px). Reads like a placeholder favicon.
 
-**React on (6 out of 17 answers):**
-- `years` — anchors experience ("Eight years. You know the cycles.")
-- `primaryCity` — local color ("Edina. Solid market.")
-- `specialties` — confirms angles for content
-- `idealClient` — confirms the audience
-- `brokerageStory` — natural place for a warm beat
-- `accentColor` — last answer before outro, nice closing acknowledgment
+- Drop the `bg-ink` wrapper. Render `<BrandMark>` directly on the white canvas.
+- Per-bubble avatar: `<BrandMark size={22} />`, flush with the bubble's top-left, no chip behind it.
+- Header: swap to `<BrandLockup>` (mark + "GEO" wordmark in Cormorant) instead of the boxed mark.
+- Optional motion: slow rotation (~6s/turn, ease-in-out) on GEO's mark only while the typing indicator is active. Implemented as a `@keyframes` rule in `index.css` toggled by `data-thinking` on the avatar wrapper. Stops the moment the bubble appears. No new assets, no GIF, no Lottie.
 
-**No reaction on:** name, brokerage, phone, state, cities, neighborhoods, counties, voice, values, differentiators, property types, primary color. After these, GEO just goes straight to the next question (short typing pause, then the next bubble). Feels like a focused interview, not a chatbot trying to be friendly.
+### 2. Add examples to the open-ended questions
 
-Implementation: add a `reactAfter?: boolean` flag on `ScriptStep` in `script.ts`, set it true on the six steps above, and gate the `fetchReaction` call in `submitAnswer` on that flag. No other behavior change.
+Five questions need free-form writing and currently land cold: `voice`, `valuesText`, `idealClient`, `brokerageStory`, `differentiators`.
 
-### 2. Fix "Take me to my portal" doing nothing
+Add an optional `hint` field to `ScriptStep`. Render as a small italic line under the question bubble (off-white background, ink-50, 12px, "e.g." prefix). Persistent, not just placeholder text.
 
-Symptom: clicking the final CTA appears to refresh and dump the user back into the chat. Cause is in the handoff between `finalize()` and `RoleGate`:
+Proposed hints (written like a real person would answer, not marketing copy):
 
-- `finalize()` upserts `intake_status.completed_at` and updates `clients.pipeline_stage`, but errors are swallowed (only `pipeline_stage` failures are caught, the `intake_status` upsert isn't checked at all). If either write silently fails, `RoleGate` re-checks `completed_at`, sees it's still null, and bounces them back to `/onboarding` — exactly what the user is seeing.
-- `intake_status.upsert` uses `onConflict: "client_id"`. If the row was never created (e.g. account created outside the wizard), the upsert payload is missing required fields and the write may fail without surfacing.
-- Even on success, `navigate("/portal")` is a soft client-side navigation. `RoleGate`'s effect re-runs, but if the Supabase client returns a stale value from cache the redirect logic flips back.
+- **voice** — *e.g. "Warm but direct. No jargon. Sound like a friend who happens to know the market."*
+- **valuesText** — *e.g. "Honesty over hype. Local first. Clients before commissions."*
+- **idealClient** — *e.g. "Young families relocating from out of state, first-time buyers in their early 30s, downsizers who've owned for 20+ years."*
+- **brokerageStory** — *e.g. "Spent 10 years in hospitality, switched to real estate in 2019 after helping my parents sell. Joined Compass last year."*
+- **differentiators** — *e.g. "Lifelong local. 60+ closings a year. Only agent in town who handles the inspection walkthrough personally."*
 
-**Fix plan:**
+### 3. Real "GEO is building your site" empty states in the portal
 
-1. In `finalize()`:
-   - Wrap both writes in a single try/catch and surface real errors via toast. If either fails, do NOT show the CTA — show GEO saying "Something didn't save. Try again." with a retry button.
-   - Await both writes before pushing the CTA bubble.
-   - Re-read `intake_status` immediately after the write and verify `completed_at` is set; only then expose the CTA.
-2. CTA button: replace `navigate("/portal")` with `window.location.assign("/portal")`. A full reload guarantees `RoleGate` runs against fresh data and avoids any in-memory race.
-3. Add a defensive guard in `RoleGate` so that when arriving at `/portal` immediately after intake, it briefly re-fetches before redirecting back to `/onboarding` (already does this, but confirm `maybeSingle()` isn't returning a cached null).
+Today, before a client's site is live, the portal just says "Not yet provisioned" and the status dot reads "pending." Cold. Doesn't tell them anything is happening.
+
+Drive the empty state off `clients.pipeline_stage` (already exists: `draft → intake_complete → in_production → live`) plus `site_status`. If `site_status !== 'live'`, show a build-status panel instead of the normal page content.
+
+**Build-status panel (shared component, e.g. `<SiteBuildStatus />`):**
+
+- Off-white callout block, ink text, gold dot pulsing on the active step.
+- Headline (Cormorant, 32px): *"GEO is building your site."*
+- Subhead: *"Live within 7 days. We'll email you the moment it's ready."*
+- Step tracker (4 hairline rows, each with a small ten-dot mark on the left):
+  1. Intake received — checkmark when `pipeline_stage >= intake_complete`
+  2. Topic research — active when `pipeline_stage = in_production` and no master topics yet, complete when `client_topics` has rows
+  3. First posts drafted — active when topics exist, complete when `posts.count > 0`
+  4. Site provisioned — active when `client_sites` row exists with `dns_verified = false`, complete when `site_status = 'live'`
+- Active step shows the gold pulse dot, completed steps show a static gold dot, future steps show ink-15.
+- ETA line at the bottom: *"Started [date]. Estimated live: [date + 7]."* Pulled from `clients.created_at` (or `intake_status.completed_at` if available).
+- Single secondary CTA: *"Have something to add?"* → opens the existing `<ChangeRequestModal>` so they can send notes while they wait.
+
+**Where it shows:**
+
+- `Dashboard.tsx` — replaces the "Site URL / Status" hero card when `site_status !== 'live'`. Keep the rest of the page (recent posts, etc.) below it, but if those are also empty, show their own small empty states (see below).
+- `MySite.tsx` — replaces the entire page body when `site_status !== 'live'`. Once live, current view shows.
+- `Posts.tsx` — when there are no posts yet AND `site_status !== 'live'`, show a slim version: *"Your first posts are being written. They'll appear here as drafts roll in."* with the gold pulse dot. Once live with no posts, fall back to current empty state.
+- `Market.tsx` — when `client_topics` is empty, show: *"GEO is researching your market. Topics will appear here once research is complete."* Same visual language.
+
+**Visual notes (brand-bible compliant):**
+
+- No spinners, no progress bars with percentages (would be fake). The gold pulse dot on the active step does the work.
+- Square corners, hairline borders, no shadows.
+- One gold accent per panel.
+- All copy direct, period-stopped, no hype, no emojis.
 
 ### Files to change
 
-- `src/components/geo-chat/script.ts` — add `reactAfter` flag on the six steps listed above.
-- `src/components/geo-chat/GeoChat.tsx` — gate `fetchReaction` on `step.reactAfter`; harden `finalize()` (error surfacing, verification read); change CTA to `window.location.assign("/portal")`.
+- `src/components/geo-chat/GeoChat.tsx` — header → `<BrandLockup>`; bubble avatar drops `bg-ink` wrapper; optional `data-thinking` hook; renders `step.hint` under the question.
+- `src/components/geo-chat/script.ts` — add `hint?: string` to `ScriptStep`; add the five hints.
+- `src/index.css` — `geo-thinking` keyframe (only if motion is in).
+- `src/components/SiteBuildStatus.tsx` — new shared component, takes `client` + queries `client_topics` / `posts` / `client_sites` for step state.
+- `src/pages/Dashboard.tsx` — gate hero card on `site_status === 'live'`; otherwise render `<SiteBuildStatus />`.
+- `src/pages/MySite.tsx` — same gate, full-page swap.
+- `src/pages/Posts.tsx` — slim build-status empty state when no posts and not live.
+- `src/pages/Market.tsx` — slim build-status empty state when no topics.
 
 ### Out of scope
 
-- No DB schema changes.
-- No changes to question copy or order.
-- No change to the edit-answer flow or the AI reaction prompt itself.
+- No DB schema changes (everything driven off existing columns).
+- No changes to the actual provisioning pipeline or autopilot logic.
+- No question reorder or removal in the chat.
+
+### Decisions to confirm
+
+1. **Avatar motion** — keep static (cleaner) or add the slow rotation while GEO is typing?
+2. **ETA line** — show "Estimated live: [date]"  with a real 7-day target, or keep it qualitative ("Live within 7 days") to avoid setting a hard date the team has to hit?
+3. **Step 2 (Topic research) signal** — is `client_topics` having rows the right "research complete" signal, or is there a better admin-side flag I should look for?
