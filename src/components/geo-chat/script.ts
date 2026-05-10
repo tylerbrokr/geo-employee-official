@@ -27,6 +27,8 @@ export interface ScriptStep {
   emptyLabel?: string;
   // Per-field fallback reaction when AI fails / for skipped answers.
   fallback: string;
+  // When true, GEO posts a short reaction after this answer. Default false.
+  reactAfter?: boolean;
 }
 
 export const US_STATES = [

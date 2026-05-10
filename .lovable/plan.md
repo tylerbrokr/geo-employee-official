@@ -1,101 +1,45 @@
-## Turn the intake into an iMessage-style chat with GEO
+## Two fixes for the GEO chat intake
 
-Replace the multi-step wizard at `/onboarding` with a single-thread chat. GEO (left, with the brand mark avatar) asks one question at a time. The user (right, in a filled bubble) answers via either typed text or a tappable input bubble that matches the question type. When the conversation finishes, GEO confirms and routes them to the portal.
+### 1. Make GEO react less often (so it stops feeling fake)
 
-### Look & feel (iMessage)
+Right now GEO posts an AI-written reaction after every single answer. Twenty in a row makes it feel performative. Cut it down so reactions land only on moments where a real teammate would actually say something.
 
-- Full-height white canvas, fixed 600px max-width column, centered.
-- Sticky top bar: small GEO avatar (BrandMark on ink square), name "GEO", caption "Your AI employee" + subtle online dot. Hairline ink/08 border below. No gradients.
-- Scrollable transcript fills the middle.
-  - GEO bubbles: left-aligned, off-white (#faf8f4) fill, ink text, no radius (per brand bible — iMessage shape can be approximated with subtle squared bubbles to stay on-brand).
-  - User bubbles: right-aligned, ink fill, white text. Same squared shape.
-  - Each bubble shows a small timestamp on hover.
-  - Day separator at the top: "Today" in ink/40 caps.
-- Typing indicator: small GEO bubble with three animated dots before each new question.
-- Sticky bottom composer: text input + send button (ink background, white arrow). Disabled when the active question expects a non-text input.
+**React on (6 out of 17 answers):**
+- `years` — anchors experience ("Eight years. You know the cycles.")
+- `primaryCity` — local color ("Edina. Solid market.")
+- `specialties` — confirms angles for content
+- `idealClient` — confirms the audience
+- `brokerageStory` — natural place for a warm beat
+- `accentColor` — last answer before outro, nice closing acknowledgment
 
-### Conversation flow (scripted order, hybrid AI reactions)
+**No reaction on:** name, brokerage, phone, state, cities, neighborhoods, counties, voice, values, differentiators, property types, primary color. After these, GEO just goes straight to the next question (short typing pause, then the next bubble). Feels like a focused interview, not a chatbot trying to be friendly.
 
-The script keeps the existing intake fields. Each step is one or more chat turns. GEO question → user answer bubble → optional GEO reaction (AI-written) → next question.
+Implementation: add a `reactAfter?: boolean` flag on `ScriptStep` in `script.ts`, set it true on the six steps above, and gate the `fetchReaction` call in `submitAnswer` on that flag. No other behavior change.
 
-1. Intro (no answer): "Hey, it's GEO. I'm the AI on your team. Going to ask you a few quick things so I can build your content engine. Should take about ten minutes."
-2. Name → text input.
-3. Brokerage → text input.
-4. Phone → text input (tel keyboard on mobile).
-5. Years in real estate → chip-bubble (single select: the existing 5 options).
-6. Primary city → text input.
-7. State → searchable chip list bubble (50 states).
-8. Surrounding cities → tag-bubble (add chips, "Done" button to send).
-9. Neighborhoods → tag-bubble.
-10. Counties → tag-bubble.
-11. Specialties → multi-select chip bubble (existing 10 options).
-12. Voice → multi-line text input.
-13. Values → multi-line text.
-14. Ideal client → multi-line text.
-15. Brokerage story → multi-line text.
-16. Differentiators → multi-line text.
-17. Property types → multi-select chip bubble.
-18. Primary color → color swatch bubble (preset palette + custom hex).
-19. Accent color → same.
-20. Outro: GEO summarizes ("Got it. Pemberton Real Estate, Edina, MN. Luxury, new construction, seller rep."), then "Sending this to the team. Your site will be ready within 7 days." → button bubble "Take me to my portal" → navigate to `/portal`.
+### 2. Fix "Take me to my portal" doing nothing
 
-After most user answers, GEO posts a short AI-generated reaction (1 short sentence, brand voice) before the next question. Step 1 (intro), tag-input steps mid-add, and the outro use scripted lines instead.
+Symptom: clicking the final CTA appears to refresh and dump the user back into the chat. Cause is in the handoff between `finalize()` and `RoleGate`:
 
-### Inline interactive bubbles
+- `finalize()` upserts `intake_status.completed_at` and updates `clients.pipeline_stage`, but errors are swallowed (only `pipeline_stage` failures are caught, the `intake_status` upsert isn't checked at all). If either write silently fails, `RoleGate` re-checks `completed_at`, sees it's still null, and bounces them back to `/onboarding` — exactly what the user is seeing.
+- `intake_status.upsert` uses `onConflict: "client_id"`. If the row was never created (e.g. account created outside the wizard), the upsert payload is missing required fields and the write may fail without surfacing.
+- Even on success, `navigate("/portal")` is a soft client-side navigation. `RoleGate`'s effect re-runs, but if the Supabase client returns a stale value from cache the redirect logic flips back.
 
-Each question type renders the same bubble shell with the right control inside:
-- `text` / `textarea` → composer accepts free text. Composer placeholder shows GEO's hint ("Type your full name").
-- `single-chip` → composer hides; chips render in a bubble below the question. Tap = answer.
-- `multi-chip` → chips render with a "Done" button at the bottom of the bubble. Tap toggles, "Done" sends.
-- `tag-input` → small input + add button inside a bubble; chips accumulate; "Done" sends the array.
-- `color` → preset swatches + a "Custom" tile that opens the native color input; "Done" sends.
-- `state-select` → searchable chip list (typeahead filter inside the bubble).
-- `cta` → a single tappable button bubble (used for the final "Take me to my portal").
+**Fix plan:**
 
-### Editing answers (tap to edit)
+1. In `finalize()`:
+   - Wrap both writes in a single try/catch and surface real errors via toast. If either fails, do NOT show the CTA — show GEO saying "Something didn't save. Try again." with a retry button.
+   - Await both writes before pushing the CTA bubble.
+   - Re-read `intake_status` immediately after the write and verify `completed_at` is set; only then expose the CTA.
+2. CTA button: replace `navigate("/portal")` with `window.location.assign("/portal")`. A full reload guarantees `RoleGate` runs against fresh data and avoids any in-memory race.
+3. Add a defensive guard in `RoleGate` so that when arriving at `/portal` immediately after intake, it briefly re-fetches before redirecting back to `/onboarding` (already does this, but confirm `maybeSingle()` isn't returning a cached null).
 
-- Every user bubble has a small pencil icon on hover. Tap → bubble flips into edit mode (same control as the original question). Saving replaces the bubble in place and updates persistence.
-- GEO does not re-ask. We only add a one-time small ink/40 line under the edited bubble: "Updated."
-- Edits never rewind the conversation. The user keeps their place at whatever question they were on.
+### Files to change
 
-### Persistence
+- `src/components/geo-chat/script.ts` — add `reactAfter` flag on the six steps listed above.
+- `src/components/geo-chat/GeoChat.tsx` — gate `fetchReaction` on `step.reactAfter`; harden `finalize()` (error surfacing, verification read); change CTA to `window.location.assign("/portal")`.
 
-Reuse the existing tables (`profiles`, `clients`, `client_markets`, `client_specialties`, `intake_status`). No schema changes.
+### Out of scope
 
-- On every answer, write that field (same mapping the wizard already uses).
-- Resume on reload: load all existing values, replay them as completed user bubbles in the transcript, set the active question to the first unanswered field. `intake_status.current_step` is repurposed to store the active question index (1..N). Existing rows are backward-compatible because the mapping starts at the same fields.
-- Submit: set `intake_status.completed_at` and `clients.pipeline_stage = 'intake_complete'`, then navigate.
-
-### Hybrid AI: GEO's reactions
-
-New edge function `geo-react`:
-- Input: `{ field: string, answer: string|string[], context: { name?, primaryCity?, state?, brokerage? } }`.
-- Calls Lovable AI Gateway, model `google/gemini-3-flash-preview`, with a tight system prompt enforcing: 1 sentence, max 14 words, brand voice (no em dashes, no emojis, no hype, no forbidden words). Returns `{ reaction: string }`.
-- Client calls it after each answer; while waiting it shows the typing indicator. If the function fails or times out (>2.5s), fall back to a small scripted reaction per field so the chat never stalls.
-- Auth: requires the user JWT (verify_jwt true). LOVABLE_API_KEY already provisioned.
-
-### File plan
-
-New:
-- `src/components/geo-chat/GeoChat.tsx` — main controller (state, persistence, scrolling, sending).
-- `src/components/geo-chat/script.ts` — ordered question list with type, label, hint, persist mapping, fallback reaction.
-- `src/components/geo-chat/Bubble.tsx` — GEO + user bubble shells, timestamps, edit affordance.
-- `src/components/geo-chat/TypingDots.tsx`.
-- `src/components/geo-chat/inputs/` — `TextInput`, `SingleChip`, `MultiChip`, `TagInput`, `ColorPicker`, `StateSelect`, `CtaButton`.
-- `src/components/geo-chat/useChatPersistence.ts` — load existing data, write per-field, advance `current_step`.
-- `supabase/functions/geo-react/index.ts` — AI reaction endpoint.
-
-Updated:
-- `src/pages/Onboarding.tsx` — strip the wizard, render `<GeoChat />` full-screen. Keep the existing GEO submit modal at the very end (or replace it with a final in-chat sequence — the chat already covers it, so we'll drop the modal).
-- `src/components/GeoTalkingModal.tsx` — kept (still useful for other flows like change requests).
-
-### Mobile
-
-- Same column at full width. Composer locks to the bottom (sticky, with safe-area padding). Bubbles stack tightly with 8px gaps. Tappable chips minimum 36px tall. Input scrolls into view above the keyboard.
-
-### Out of scope (call out, don't build now)
-
-- Voice input / dictation.
-- File uploads (headshot, logo) — current intake doesn't ask for them; if added later, will become an attachment bubble.
-- Branching conversations based on AI judgment of answers.
-- Server-side moderation of free-text answers.
+- No DB schema changes.
+- No changes to question copy or order.
+- No change to the edit-answer flow or the AI reaction prompt itself.
