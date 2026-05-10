@@ -489,15 +489,18 @@ export default function Onboarding() {
                 <Button onClick={next} className="rounded-lg">Next</Button>
               </div>
             )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
-            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            <h3 className="text-xl font-semibold">Submitting your intake...</h3>
-            <p className="text-sm text-muted-foreground">Taking you to your portal.</p>
-          </div>
-        )}
+        </>
       </div>
+
+      <GeoTalkingModal
+        open={launching}
+        messages={[
+          "Thank you. Let me read through everything you sent.",
+          "Looks great. I'm sending this over to the team now.",
+          "They'll have your site built within 7 days. Taking you to your portal.",
+        ]}
+        onComplete={finishLaunch}
+      />
     </div>
   );
 }
