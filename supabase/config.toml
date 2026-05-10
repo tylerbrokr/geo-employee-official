@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.delete-client]
 verify_jwt = true
+
+[functions.geo-react]
+verify_jwt = true
