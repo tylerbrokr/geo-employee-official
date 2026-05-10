@@ -204,6 +204,15 @@ export default function Onboarding() {
       if (rows.length) await supabase.from("client_specialties").insert(rows);
     } else if (currentStep === 3) {
       await supabase.from("clients").update({
+        voice: data.voice,
+        values_text: data.valuesText,
+        ideal_client: data.idealClient,
+        brokerage_story: data.brokerageStory,
+        differentiators: data.differentiators,
+        property_types: Array.from(data.propertyTypes),
+      } as any).eq("id", clientId);
+    } else if (currentStep === 4) {
+      await supabase.from("clients").update({
         primary_color: data.primaryColor,
         accent_color: data.accentColor,
       }).eq("id", clientId);
@@ -216,7 +225,7 @@ export default function Onboarding() {
 
   const next = async () => {
     await persistStep(step);
-    if (step < 4) {
+    if (step < 5) {
       setDirection(1);
       setStep((s) => s + 1);
     }
@@ -233,9 +242,10 @@ export default function Onboarding() {
     setLaunching(true);
     await supabase.from("intake_status").upsert({
       client_id: clientId,
-      current_step: 5,
+      current_step: 6,
       completed_at: new Date().toISOString(),
     }, { onConflict: "client_id" });
+    await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
     setTimeout(() => navigate("/portal"), 2200);
   };
 
