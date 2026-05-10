@@ -14,7 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // UI default — Helvetica Neue per brand
+        sans: ['"Helvetica Neue"', '-apple-system', 'BlinkMacSystemFont', 'Helvetica', 'Arial', 'sans-serif'],
+        ui: ['"Helvetica Neue"', '-apple-system', 'BlinkMacSystemFont', 'Helvetica', 'Arial', 'sans-serif'],
+        // Display — Cormorant Garamond per brand
+        display: ['"Cormorant Garamond"', 'Georgia', '"Times New Roman"', 'serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -60,30 +65,43 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        emerald: {
-          DEFAULT: "hsl(var(--emerald))",
-          hover: "hsl(var(--emerald-hover))",
+        // Brand semantic colors
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
         },
-        navy: "hsl(var(--navy))",
-        slate_text: "hsl(var(--slate-text))",
-        surface: "hsl(var(--surface))",
+        ink: {
+          DEFAULT: "hsl(var(--ink))",
+          deep: "hsl(var(--deep-ink))",
+        },
+        "off-white": "hsl(var(--off-white))",
+        cream: "hsl(var(--cream))",
+        // Legacy aliases re-pointed to brand (do not use in new code)
+        emerald: {
+          DEFAULT: "hsl(var(--gold))",
+          hover: "hsl(var(--ink))",
+        },
+        navy: "hsl(var(--ink))",
+        slate_text: "hsl(0 0% 35%)",
+        surface: "hsl(var(--off-white))",
         danger: {
           DEFAULT: "hsl(var(--danger))",
           bg: "hsl(var(--danger-bg))",
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        card: "12px",
-        btn: "8px",
+        // Square edges everywhere (brand bible §16)
+        lg: "0px",
+        md: "0px",
+        sm: "0px",
+        card: "0px",
+        btn: "0px",
       },
       boxShadow: {
-        'card': '0 1px 2px rgba(0,0,0,0.03), 0 4px 16px -2px rgba(0,0,0,0.06), 0 12px 40px -8px rgba(0,0,0,0.04)',
-        'card-hover': '0 1px 2px rgba(0,0,0,0.03), 0 8px 24px -4px rgba(0,0,0,0.08), 0 16px 48px -8px rgba(0,0,0,0.06)',
-        'btn': '0 1px 2px rgba(0,0,0,0.08)',
-        'btn-hover': '0 2px 8px rgba(0,0,0,0.12)',
+        // Brand: no decorative shadows. Keep tokens but flat.
+        'card': 'none',
+        'card-hover': 'none',
+        'btn': 'none',
+        'btn-hover': 'none',
       },
       keyframes: {
         "accordion-down": {

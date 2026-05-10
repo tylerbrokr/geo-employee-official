@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* The Inner Cirql brand fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,175 +7,191 @@
 
 @layer base {
   :root {
-    --background: 216 20% 95%;
-    --foreground: 222 47% 11%;
+    /* Canvas */
+    --background: 0 0% 100%;          /* #ffffff white */
+    --foreground: 0 0% 10%;           /* #1a1a1a ink */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 160 84% 30%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary = ink (buttons, dark surfaces) */
+    --primary: 0 0% 10%;              /* ink */
+    --primary-foreground: 36 38% 95%; /* off-white #faf8f4 */
 
+    /* Secondary = ghost surface */
     --secondary: 0 0% 100%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted = off-white */
+    --muted: 36 38% 95%;              /* #faf8f4 off-white */
+    --muted-foreground: 0 0% 35%;     /* ink-35 */
 
-    --accent: 160 84% 30%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent = gold (the one signature color) */
+    --accent: 36 43% 61%;             /* #c9a96e gold */
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 160 84% 30%;
+    /* Hairline ink-08 borders */
+    --border: 0 0% 10%;               /* used with /8 opacity via tw classes */
+    --input: 0 0% 10%;
+    --ring: 0 0% 10%;
 
-    --radius: 0.5rem;
+    /* Zero radius. Square edges everywhere. */
+    --radius: 0px;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 215 25% 63%;
-    --sidebar-primary: 160 84% 30%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 160 84% 30%;
+    /* Sidebar — white with ink text per brand */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 35%;
+    --sidebar-primary: 36 43% 61%;    /* gold for active accents */
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 36 38% 95%;     /* off-white hover bg */
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 36 43% 61%;
 
-    --page-bg: 216 20% 95%;
-    --emerald: 160 84% 30%;
-    --emerald-hover: 162 85% 24%;
-    --navy: 222 47% 11%;
-    --slate-text: 215 16% 47%;
-    --subtle-border: 220 13% 91%;
-    --surface: 210 40% 96%;
-    --danger: 0 72% 42%;
+    /* Brand semantic aliases */
+    --gold: 36 43% 61%;               /* #c9a96e */
+    --ink: 0 0% 10%;                  /* #1a1a1a */
+    --deep-ink: 0 0% 5%;              /* #0c0c0c rare full-bleed */
+    --off-white: 36 38% 95%;          /* #faf8f4 */
+    --cream: 36 33% 90%;              /* #ede8df reversed text */
+
+    /* Legacy aliases (still referenced across pages) re-pointed to the brand */
+    --page-bg: 0 0% 100%;
+    --emerald: 36 43% 61%;            /* gold */
+    --emerald-hover: 0 0% 10%;        /* ink */
+    --navy: 0 0% 10%;                 /* ink */
+    --slate-text: 0 0% 35%;
+    --subtle-border: 0 0% 10%;
+    --surface: 36 38% 95%;            /* off-white */
+    --danger: 0 65% 45%;
     --danger-bg: 0 86% 97%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border/10;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.6;
+    font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer components {
-  /* Card system — layered depth with gradient border */
-  .findr-card {
-    @apply relative bg-card rounded-xl p-6 overflow-hidden;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.8),
-      0 1px 3px rgba(0,0,0,0.06),
-      0 8px 24px -4px rgba(0,0,0,0.10),
-      0 16px 48px -12px rgba(0,0,0,0.06);
-    backdrop-filter: blur(8px);
-    background: hsla(0, 0%, 100%, 0.92);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  /* ----- Display & UI font utilities ----- */
+  .font-display {
+    font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   }
-  .findr-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: linear-gradient(135deg, hsl(160 84% 30% / 0.5), hsl(222 47% 11% / 0.3));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
+  .font-ui {
+    font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  }
+
+  /* ----- Card system — white with hairline ink-08 border, square ----- */
+  .findr-card {
+    @apply relative bg-card p-6;
+    border: 1px solid rgba(26, 26, 26, 0.08);
+    transition: border-color 0.2s ease;
   }
   .findr-card:hover {
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.8),
-      0 1px 3px rgba(0,0,0,0.06),
-      0 12px 32px -4px rgba(0,0,0,0.12),
-      0 20px 56px -12px rgba(0,0,0,0.08);
-    transform: translateY(-1px);
+    border-color: rgba(26, 26, 26, 0.16);
   }
 
-  /* Elevated variant for hero cards */
   .findr-card-elevated {
-    @apply relative bg-card rounded-xl p-6 overflow-hidden;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.8),
-      0 2px 4px rgba(0,0,0,0.06),
-      0 12px 40px -8px rgba(0,0,0,0.14),
-      0 24px 64px -16px rgba(0,0,0,0.08);
-    backdrop-filter: blur(12px);
-    background: linear-gradient(135deg, rgba(5,150,105,0.03) 0%, hsla(0, 0%, 100%, 0.95) 40%);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-  }
-  .findr-card-elevated::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: linear-gradient(135deg, hsl(160 84% 30% / 0.6), hsl(222 47% 11% / 0.2));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
+    @apply relative bg-card p-6;
+    border: 1px solid rgba(26, 26, 26, 0.08);
   }
   .findr-card-elevated:hover {
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.8),
-      0 2px 4px rgba(0,0,0,0.06),
-      0 16px 48px -8px rgba(0,0,0,0.16),
-      0 28px 72px -16px rgba(0,0,0,0.10);
-    transform: translateY(-1px);
+    border-color: rgba(26, 26, 26, 0.16);
   }
 
-  /* Fading divider */
+  /* Off-white callout block (brand: only warm tone, used sparingly) */
+  .callout-block {
+    @apply p-6;
+    background-color: hsl(var(--off-white));
+    border: 1px solid rgba(26, 26, 26, 0.08);
+  }
+
+  /* Hairline divider */
   .fading-divider {
     height: 1px;
-    background: linear-gradient(to right, transparent, hsl(var(--border)), transparent);
+    background: rgba(26, 26, 26, 0.08);
   }
 
+  /* ----- Typography utilities (per brand bible §13) ----- */
   .section-label {
-    @apply text-xs uppercase tracking-wider;
-    font-weight: 600;
-    color: hsl(var(--slate-text));
-    letter-spacing: 0.08em;
+    font-family: 'Helvetica Neue', -apple-system, sans-serif;
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;        /* 2.5px at 10px */
+    color: rgba(26, 26, 26, 0.35);
   }
 
   .page-title {
-    @apply text-2xl;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: hsl(var(--navy));
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    color: hsl(var(--ink));
   }
 
   .stat-number {
-    @apply text-3xl;
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: 0;
     font-feature-settings: 'tnum';
-    color: hsl(var(--navy));
+    color: hsl(var(--ink));
   }
 
-  /* Breathing emerald pulse */
-  @keyframes emerald-breathe {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 8px rgba(5, 150, 105, 0);
-    }
+  .display-hero {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-size: 96px;
+    line-height: 1;
+    color: hsl(var(--ink));
   }
-  .emerald-pulse {
-    animation: emerald-breathe 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  /* ----- Gold live-state dot, 5px, 1.4s pulse (brand bible §16) ----- */
+  @keyframes gold-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+  }
+  .gold-pulse,
+  .emerald-pulse {                   /* alias kept for legacy markup */
+    animation: gold-pulse 1.4s ease-in-out infinite;
+  }
+
+  /* ----- Ten gold dots brand mark ----- */
+  .ten-dots-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+  .ten-dots-mark span {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: hsl(var(--gold));
+    top: 50%;
+    left: 50%;
+    margin: -1.5px 0 0 -1.5px;
   }
 }

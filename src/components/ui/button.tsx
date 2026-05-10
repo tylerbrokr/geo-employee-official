@@ -3,23 +3,34 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+/**
+ * The Inner Cirql buttons (brand bible §16).
+ * - Square edges everywhere.
+ * - Helvetica Neue 500, 13px, letter-spacing 0.5px.
+ * - Hover = opacity shift only. No color flip, no scale, no shadow.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 text-sm rounded-btn active:translate-y-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-ui font-medium transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 text-[13px] tracking-[0.02em] rounded-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-emerald-hover hover:-translate-y-px shadow-[0_1px_3px_rgba(5,150,105,0.3),0_4px_12px_-2px_rgba(5,150,105,0.25)] hover:shadow-[0_2px_6px_rgba(5,150,105,0.35),0_8px_20px_-4px_rgba(5,150,105,0.3)]",
-        destructive: "bg-danger-bg text-danger hover:bg-danger-bg/80",
-        outline: "border border-input bg-secondary text-secondary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-muted hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
-        secondary: "border border-input bg-secondary text-secondary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-muted hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
-        ghost: "hover:bg-muted hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        // Primary — ink bg, off-white text
+        default: "bg-ink text-off-white hover:opacity-85",
+        // Form submit / high-emphasis CTA — gold bg, ink text
+        gold: "bg-gold text-ink hover:opacity-85",
+        // Ghost — transparent, ink-28 border
+        outline: "bg-transparent text-ink border border-ink/[0.28] hover:opacity-70",
+        secondary: "bg-transparent text-ink border border-ink/[0.28] hover:opacity-70",
+        // Subtle — no border, hover off-white bg
+        ghost: "text-ink hover:bg-off-white",
+        link: "text-ink underline underline-offset-4 hover:opacity-70",
+        destructive: "bg-destructive text-destructive-foreground hover:opacity-85",
       },
       size: {
-        default: "h-10 px-5 py-2.5",
-        sm: "h-9 px-3",
-        lg: "h-11 px-8",
-        icon: "h-10 w-10",
+        default: "h-10 px-9 py-4",       // 16px y / 36px x per brand
+        sm: "h-9 px-5",
+        lg: "h-12 px-10",
+        icon: "h-10 w-10 px-0",
       },
     },
     defaultVariants: {
