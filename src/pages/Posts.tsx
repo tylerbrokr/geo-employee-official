@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useClient } from "@/hooks/useClient";
+import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 
 type Tab = "All" | "Published" | "Scheduled";
 
@@ -52,7 +53,17 @@ export default function Posts() {
           </div>
           <div className="fading-divider mx-6" />
           {filtered.length === 0 ? (
-            <div className="px-6 py-10 text-sm text-muted-foreground">No posts to show yet.</div>
+            client && client.site_status !== "live" ? (
+              <div className="px-6 py-2">
+                <SiteBuildStatus
+                  client={client as any}
+                  variant="slim"
+                  slimMessage="Your first posts are being written. They'll appear here as drafts roll in."
+                />
+              </div>
+            ) : (
+              <div className="px-6 py-10 text-sm text-muted-foreground">No posts to show yet.</div>
+            )
           ) : (
             filtered.map((post, i) => (
               <div key={post.id}>
