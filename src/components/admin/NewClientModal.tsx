@@ -15,7 +15,8 @@ interface Props {
 
 export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [magicLink, setMagicLink] = useState<string | null>(null);
@@ -24,15 +25,22 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
   const [recipientEmail, setRecipientEmail] = useState<string>("");
 
   const reset = () => {
-    setEmail(""); setFullName(""); setBusinessName("");
+    setEmail(""); setFirstName(""); setLastName(""); setBusinessName("");
     setMagicLink(null); setEmailSent(false); setEmailError(null); setRecipientEmail("");
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
     const { data, error } = await supabase.functions.invoke("create-client", {
-      body: { email, full_name: fullName, business_name: businessName },
+      body: {
+        email,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        full_name: fullName || null,
+        business_name: businessName,
+      },
     });
     setSubmitting(false);
     if (error || (data as any)?.error) {
@@ -93,9 +101,15 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
               <Label className="text-[13px] mb-1.5 block">Email</Label>
               <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
-            <div>
-              <Label className="text-[13px] mb-1.5 block">Full name</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[13px] mb-1.5 block">First name</Label>
+                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-[13px] mb-1.5 block">Last name</Label>
+                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </div>
             </div>
             <div>
               <Label className="text-[13px] mb-1.5 block">Business name (optional)</Label>
