@@ -10,6 +10,8 @@ import { Check, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { GeoTalkingModal } from "@/components/GeoTalkingModal";
+import { BrandMark } from "@/components/BrandMark";
 
 const STEPS = ["You", "Market", "Specialties", "Voice", "Brand", "Launch"] as const;
 const PROPERTY_TYPES = ["Single Family","Condo","Townhouse","Multi-Family","Luxury","New Construction","Waterfront","Land/Acreage","Investment","Commercial"];
@@ -240,14 +242,19 @@ export default function Onboarding() {
   const handleLaunch = async () => {
     if (!clientId) return;
     setLaunching(true);
-    await supabase.from("intake_status").upsert({
-      client_id: clientId,
-      current_step: 6,
-      completed_at: new Date().toISOString(),
-    }, { onConflict: "client_id" });
-    await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
-    setTimeout(() => navigate("/portal"), 2200);
+    try {
+      await supabase.from("intake_status").upsert({
+        client_id: clientId,
+        current_step: 6,
+        completed_at: new Date().toISOString(),
+      }, { onConflict: "client_id" });
+      await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not submit intake");
+    }
   };
+
+  const finishLaunch = () => navigate("/portal");
 
   if (loadingInitial) {
     return (
