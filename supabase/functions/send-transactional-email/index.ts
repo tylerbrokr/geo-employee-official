@@ -6,7 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const SITE_NAME = 'The Inner Cirql'
-const FROM_DOMAIN = 'notify.geoemployee.com' // verified Resend sender
+const FROM_DOMAIN = 'send.geoemployee.com' // verified Resend sender
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/resend'
