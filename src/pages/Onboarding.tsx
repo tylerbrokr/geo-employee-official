@@ -266,17 +266,33 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#F8FAFC" }}>
-      <div className="flex items-center gap-2 mb-8">
-        <span className="w-2.5 h-2.5 rounded-full bg-primary emerald-pulse" />
-        <span className="text-xl font-bold text-foreground tracking-tight">GEO</span>
+      <div className="w-full max-w-[600px] mb-6 flex items-start gap-3">
+        <div className="flex-shrink-0 w-10 h-10 bg-ink flex items-center justify-center">
+          <BrandMark size={22} />
+        </div>
+        <div className="pt-0.5">
+          <div className="text-[10px] tracking-[2px] uppercase text-ink/50">GEO</div>
+          {step === 0 ? (
+            <p className="text-[15px] text-ink leading-snug mt-1">
+              Hey, it's GEO. I've got a few quick questions so we can get your content engine up and running. Should take about ten minutes.
+            </p>
+          ) : (
+            <p className="text-[15px] text-ink leading-snug mt-1">
+              {step === 1 && "Where are you working?"}
+              {step === 2 && "What do you specialize in?"}
+              {step === 3 && "Now help me sound like you."}
+              {step === 4 && "Last thing. What colors should I use on your site?"}
+              {step === 5 && "That's everything I need."}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="w-full max-w-[600px] rounded-2xl bg-white p-10 relative overflow-hidden" style={{
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -4px rgba(0,0,0,0.10)",
       }}>
-        {!launching ? (
-          <>
-            <StepBar current={step} />
+        <>
+          <StepBar current={step} />
             <div className="relative overflow-hidden min-h-[380px]">
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div key={step} custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
