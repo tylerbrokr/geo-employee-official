@@ -460,7 +460,7 @@ export default function Onboarding() {
                 </motion.div>
               </AnimatePresence>
             </div>
-            {step < 4 && (
+            {step < 5 && (
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-border">
                 {step > 0 && <Button variant="secondary" onClick={back} className="rounded-lg">Back</Button>}
                 <Button onClick={next} className="rounded-lg">Next</Button>
