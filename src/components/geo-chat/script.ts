@@ -173,6 +173,7 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["And an accent color to pair with it?"],
     input: { type: "color" },
     fallback: "Good pairing.",
+    reactAfter: true,
   },
   {
     id: "outro",
