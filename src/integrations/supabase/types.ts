@@ -99,39 +99,51 @@ export type Database = {
       client_sites: {
         Row: {
           client_id: string
+          cloudflare_hostname_id: string | null
           created_at: string
           custom_domain: string | null
           dns_records: Json | null
           dns_verified: boolean
           id: string
+          last_verified_at: string | null
           provisioned_at: string | null
+          ssl_status: string | null
           subdomain: string | null
           updated_at: string
-          vercel_domain_id: string | null
+          verification_token: string | null
+          verify_attempts: number
         }
         Insert: {
           client_id: string
+          cloudflare_hostname_id?: string | null
           created_at?: string
           custom_domain?: string | null
           dns_records?: Json | null
           dns_verified?: boolean
           id?: string
+          last_verified_at?: string | null
           provisioned_at?: string | null
+          ssl_status?: string | null
           subdomain?: string | null
           updated_at?: string
-          vercel_domain_id?: string | null
+          verification_token?: string | null
+          verify_attempts?: number
         }
         Update: {
           client_id?: string
+          cloudflare_hostname_id?: string | null
           created_at?: string
           custom_domain?: string | null
           dns_records?: Json | null
           dns_verified?: boolean
           id?: string
+          last_verified_at?: string | null
           provisioned_at?: string | null
+          ssl_status?: string | null
           subdomain?: string | null
           updated_at?: string
-          vercel_domain_id?: string | null
+          verification_token?: string | null
+          verify_attempts?: number
         }
         Relationships: []
       }
@@ -501,6 +513,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      site_cache_purges: {
+        Row: {
+          attempt_count: number
+          client_id: string
+          created_at: string
+          hostname: string
+          id: string
+          last_error: string | null
+          paths: string[]
+          purge_trigger: string
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          client_id: string
+          created_at?: string
+          hostname: string
+          id?: string
+          last_error?: string | null
+          paths?: string[]
+          purge_trigger: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          client_id?: string
+          created_at?: string
+          hostname?: string
+          id?: string
+          last_error?: string | null
+          paths?: string[]
+          purge_trigger?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_cache_purges_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
