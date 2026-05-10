@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Check, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-const STEPS = ["You", "Market", "Specialties", "Brand", "Launch"] as const;
+const STEPS = ["You", "Market", "Specialties", "Voice", "Brand", "Launch"] as const;
+const PROPERTY_TYPES = ["Single Family","Condo","Townhouse","Multi-Family","Luxury","New Construction","Waterfront","Land/Acreage","Investment","Commercial"];
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming",
@@ -31,6 +33,12 @@ interface FormData {
   neighborhoods: string[];
   counties: string[];
   specialties: Set<string>;
+  voice: string;
+  valuesText: string;
+  idealClient: string;
+  brokerageStory: string;
+  differentiators: string;
+  propertyTypes: Set<string>;
   primaryColor: string;
   accentColor: string;
 }
@@ -118,6 +126,12 @@ export default function Onboarding() {
     neighborhoods: [],
     counties: [],
     specialties: new Set(),
+    voice: "",
+    valuesText: "",
+    idealClient: "",
+    brokerageStory: "",
+    differentiators: "",
+    propertyTypes: new Set(),
     primaryColor: "#059669",
     accentColor: "#0F172A",
   });
@@ -146,6 +160,12 @@ export default function Onboarding() {
         phone: c.phone ?? "",
         primaryColor: c.primary_color ?? "#059669",
         accentColor: c.accent_color ?? "#0F172A",
+        voice: (c as any).voice ?? "",
+        valuesText: (c as any).values_text ?? "",
+        idealClient: (c as any).ideal_client ?? "",
+        brokerageStory: (c as any).brokerage_story ?? "",
+        differentiators: (c as any).differentiators ?? "",
+        propertyTypes: new Set<string>((c as any).property_types ?? []),
         primaryCity: m?.primary_city ?? "",
         state: m?.primary_state ?? "",
         cities: m?.cities ?? [],
@@ -153,7 +173,7 @@ export default function Onboarding() {
         counties: m?.counties ?? [],
         specialties: new Set((sp ?? []).map((s: any) => s.specialty)),
       }));
-      if (intake?.current_step) setStep(Math.min(4, Math.max(0, intake.current_step - 1)));
+      if (intake?.current_step) setStep(Math.min(5, Math.max(0, intake.current_step - 1)));
       setLoadingInitial(false);
     })();
   }, [user]);
@@ -184,6 +204,15 @@ export default function Onboarding() {
       if (rows.length) await supabase.from("client_specialties").insert(rows);
     } else if (currentStep === 3) {
       await supabase.from("clients").update({
+        voice: data.voice,
+        values_text: data.valuesText,
+        ideal_client: data.idealClient,
+        brokerage_story: data.brokerageStory,
+        differentiators: data.differentiators,
+        property_types: Array.from(data.propertyTypes),
+      } as any).eq("id", clientId);
+    } else if (currentStep === 4) {
+      await supabase.from("clients").update({
         primary_color: data.primaryColor,
         accent_color: data.accentColor,
       }).eq("id", clientId);
@@ -196,7 +225,7 @@ export default function Onboarding() {
 
   const next = async () => {
     await persistStep(step);
-    if (step < 4) {
+    if (step < 5) {
       setDirection(1);
       setStep((s) => s + 1);
     }
@@ -213,9 +242,10 @@ export default function Onboarding() {
     setLaunching(true);
     await supabase.from("intake_status").upsert({
       client_id: clientId,
-      current_step: 5,
+      current_step: 6,
       completed_at: new Date().toISOString(),
     }, { onConflict: "client_id" });
+    await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
     setTimeout(() => navigate("/portal"), 2200);
   };
 
@@ -315,6 +345,52 @@ export default function Onboarding() {
                   {step === 3 && (
                     <div className="space-y-5">
                       <div>
+                        <h2 className="text-[22px] font-semibold tracking-tight">Your voice & story.</h2>
+                        <p className="text-sm text-muted-foreground mt-1">This is what makes your blog sound like you. Our AI uses every word of this to write your content.</p>
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">How would you describe your voice?</Label>
+                        <Textarea value={data.voice} onChange={(e) => update({ voice: e.target.value })} placeholder="Warm and direct. No real-estate jargon. I write like I'm texting a friend." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">What do you stand for?</Label>
+                        <Textarea value={data.valuesText} onChange={(e) => update({ valuesText: e.target.value })} placeholder="Honesty over hype. Local knowledge. Treating renters and first-timers with the same care as luxury buyers." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">Who is your ideal client?</Label>
+                        <Textarea value={data.idealClient} onChange={(e) => update({ idealClient: e.target.value })} placeholder="Young families relocating from out of state, first-time buyers in their 30s, anyone who values a guide more than a salesperson." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">Your brokerage / career story</Label>
+                        <Textarea value={data.brokerageStory} onChange={(e) => update({ brokerageStory: e.target.value })} placeholder="Started in 2018 after a career in teaching. Joined Berkshire Hathaway in 2021. Now leading a small team focused on the Dundee neighborhood." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">What makes you the best choice?</Label>
+                        <Textarea value={data.differentiators} onChange={(e) => update({ differentiators: e.target.value })} placeholder="Lifelong Omaha resident. 60+ closed transactions per year. Specialize in mid-century homes. Free pre-listing renovation consults." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div className="fading-divider my-2" />
+                      <div className="section-label mb-2">PROPERTY TYPES YOU WORK WITH</div>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {PROPERTY_TYPES.map((s) => {
+                          const active = data.propertyTypes.has(s);
+                          return (
+                            <button key={s} type="button" onClick={() => {
+                              const next = new Set(data.propertyTypes);
+                              if (next.has(s)) next.delete(s); else next.add(s);
+                              update({ propertyTypes: next });
+                            }} className="px-3 py-2 rounded-lg text-xs font-medium text-center" style={{
+                              background: active ? "hsl(160 84% 30%)" : "#fff",
+                              color: active ? "#fff" : "hsl(215 16% 47%)",
+                              border: active ? "1px solid hsl(160 84% 30%)" : "1px solid hsl(214 32% 91%)",
+                            }}>{s}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {step === 4 && (
+                    <div className="space-y-5">
+                      <div>
                         <h2 className="text-[22px] font-semibold tracking-tight">Make it yours.</h2>
                         <p className="text-sm text-muted-foreground mt-1">Your colors will be applied to your GEO site.</p>
                       </div>
@@ -343,7 +419,7 @@ export default function Onboarding() {
                       </div>
                     </div>
                   )}
-                  {step === 4 && (
+                  {step === 5 && (
                     <div className="space-y-5">
                       <div>
                         <h2 className="text-[22px] font-semibold tracking-tight">You're ready.</h2>
@@ -384,7 +460,7 @@ export default function Onboarding() {
                 </motion.div>
               </AnimatePresence>
             </div>
-            {step < 4 && (
+            {step < 5 && (
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-border">
                 {step > 0 && <Button variant="secondary" onClick={back} className="rounded-lg">Back</Button>}
                 <Button onClick={next} className="rounded-lg">Next</Button>

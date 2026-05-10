@@ -49,12 +49,26 @@ export default function AdminClientDetail() {
 
   if (!client) return <div className="text-sm text-muted-foreground">Loading...</div>;
 
+  const stage = (client as any).pipeline_stage ?? "draft";
+  const STAGE_LABEL: Record<string, string> = {
+    draft: "Draft",
+    intake_sent: "Intake sent",
+    intake_complete: "Intake complete",
+    site_live: "Site live",
+    topics_ready: "Topics ready",
+    autopilot: "Autopilot",
+  };
   return (
     <div className="space-y-8">
-      <div>
-        <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
-        <h1 className="page-title mt-2">{profile?.full_name ?? client.business_name ?? "Client"}</h1>
-        <p className="text-sm text-muted-foreground">{profile?.email}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
+          <h1 className="page-title mt-2">{profile?.full_name ?? client.business_name ?? "Client"}</h1>
+          <p className="text-sm text-muted-foreground">{profile?.email}</p>
+        </div>
+        <span className="px-3 py-1.5 rounded-md text-xs font-semibold" style={{ background: "hsl(160 84% 30% / 0.1)", color: "hsl(160 84% 30%)" }}>
+          {STAGE_LABEL[stage] ?? stage}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -89,6 +103,42 @@ export default function AdminClientDetail() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="findr-card">
+        <p className="section-label mb-3">VOICE & STORY</p>
+        {(() => {
+          const c: any = client;
+          const fields: [string, string | undefined][] = [
+            ["Voice", c.voice],
+            ["Values", c.values_text],
+            ["Ideal client", c.ideal_client],
+            ["Story", c.brokerage_story],
+            ["Differentiators", c.differentiators],
+          ];
+          const hasAny = fields.some(([, v]) => v && v.trim());
+          if (!hasAny) return <span className="text-sm text-muted-foreground">Not yet provided.</span>;
+          return (
+            <div className="space-y-3 text-sm">
+              {fields.map(([label, val]) => val && val.trim() ? (
+                <div key={label}>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
+                  <div className="whitespace-pre-line">{val}</div>
+                </div>
+              ) : null)}
+              {c.property_types?.length ? (
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Property types</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.property_types.map((p: string) => (
+                      <span key={p} className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })()}
       </div>
 
       <div>
