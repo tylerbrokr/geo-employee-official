@@ -60,6 +60,7 @@ const App = () => (
               <Route path="/admin/posts" element={<AdminPostsQueue />} />
               <Route path="/admin/posts/:postId" element={<AdminPostEditor />} />
               <Route path="/admin/change-requests" element={<AdminChangeRequests />} />
+              <Route path="/admin/emails" element={<AdminEmails />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
