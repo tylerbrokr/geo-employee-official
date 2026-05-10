@@ -20,6 +20,7 @@ import AdminClientDetail from "./pages/admin/ClientDetail";
 import AdminPostsQueue from "./pages/admin/PostsQueue";
 import AdminPostEditor from "./pages/admin/PostEditor";
 import AdminChangeRequests from "./pages/admin/ChangeRequests";
+import AdminEmails from "./pages/admin/Emails";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/admin/posts" element={<AdminPostsQueue />} />
               <Route path="/admin/posts/:postId" element={<AdminPostEditor />} />
               <Route path="/admin/change-requests" element={<AdminChangeRequests />} />
+              <Route path="/admin/emails" element={<AdminEmails />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

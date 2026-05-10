@@ -305,6 +305,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_template_copy: {
+        Row: {
+          body_paragraphs: string[]
+          cta_label: string
+          eyebrow: string
+          headline: string
+          signature_line_1: string
+          signature_line_2: string
+          subject: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_paragraphs?: string[]
+          cta_label?: string
+          eyebrow?: string
+          headline: string
+          signature_line_1?: string
+          signature_line_2?: string
+          subject: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_paragraphs?: string[]
+          cta_label?: string
+          eyebrow?: string
+          headline?: string
+          signature_line_1?: string
+          signature_line_2?: string
+          subject?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       intake_status: {
         Row: {
           client_id: string

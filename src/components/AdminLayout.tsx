@@ -6,6 +6,7 @@ const items = [
   { label: "Clients", path: "/admin", end: true },
   { label: "Posts queue", path: "/admin/posts" },
   { label: "Change requests", path: "/admin/change-requests" },
+  { label: "Emails", path: "/admin/emails" },
 ];
 
 export function AdminLayout() {
