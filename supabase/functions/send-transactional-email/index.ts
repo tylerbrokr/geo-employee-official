@@ -282,49 +282,20 @@ Deno.serve(async (req) => {
     )
   }
 
-  // 4a. Merge editable copy from email_template_copy table (if present).
-  // Falls back silently to template's hardcoded defaults if missing.
-  let mergedTemplateData = templateData
-  let dbSubject: string | null = null
-  try {
-    const { data: copyRow } = await supabase
-      .from('email_template_copy')
-      .select('subject, eyebrow, headline, body_paragraphs, cta_label, signature_line_1, signature_line_2')
-      .eq('template_name', templateName)
-      .maybeSingle()
-    if (copyRow) {
-      dbSubject = copyRow.subject ?? null
-      mergedTemplateData = {
-        ...templateData,
-        eyebrow: copyRow.eyebrow,
-        headline: copyRow.headline,
-        body_paragraphs: copyRow.body_paragraphs,
-        cta_label: copyRow.cta_label,
-        signature_line_1: copyRow.signature_line_1,
-        signature_line_2: copyRow.signature_line_2,
-        subject: copyRow.subject,
-      }
-    }
-  } catch (e) {
-    console.warn('email_template_copy lookup failed, using defaults', { templateName, error: String(e) })
-  }
-
-  // 4b. Render React Email template to HTML and plain text
+  // 4. Render React Email template to HTML and plain text
   const html = await renderAsync(
-    React.createElement(template.component, mergedTemplateData)
+    React.createElement(template.component, templateData)
   )
   const plainText = await renderAsync(
-    React.createElement(template.component, mergedTemplateData),
+    React.createElement(template.component, templateData),
     { plainText: true }
   )
 
-  // Resolve subject — DB override wins, then dynamic function, then static string
+  // Resolve subject — supports static string or dynamic function
   const resolvedSubject =
-    dbSubject ??
-    (typeof template.subject === 'function'
-      ? template.subject(mergedTemplateData)
-      : template.subject)
-
+    typeof template.subject === 'function'
+      ? template.subject(templateData)
+      : template.subject
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
