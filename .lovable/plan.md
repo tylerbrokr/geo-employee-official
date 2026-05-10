@@ -1,64 +1,101 @@
-## Three fixes + GEO personality pass on the intake
+## Turn the intake into an iMessage-style chat with GEO
 
-### 1. Email copy from the Emails tab is ignored on real sends
+Replace the multi-step wizard at `/onboarding` with a single-thread chat. GEO (left, with the brand mark avatar) asks one question at a time. The user (right, in a filled bubble) answers via either typed text or a tappable input bubble that matches the question type. When the conversation finishes, GEO confirms and routes them to the portal.
 
-**Cause:** `send-transactional-email` renders the template using only the `templateData` passed in by the caller (just `name` + `magicLink`). It never reads the `email_template_copy` row, so edits in Admin → Emails only show up in the live preview and the test send (both pass row contents in directly), not in the actual `create-client` invite.
+### Look & feel (iMessage)
 
-**Fix:** In `supabase/functions/send-transactional-email/index.ts`, before rendering:
-- Look up `email_template_copy` by `template_name` using the existing service-role client.
-- Merge its fields (`eyebrow`, `headline`, `body_paragraphs`, `cta_label`, `signature_line_1`, `signature_line_2`) into `templateData`, letting any explicit `templateData` field win.
-- If the row has a non-empty `subject`, use it as the subject (overriding the template default).
-- Redeploy the function.
+- Full-height white canvas, fixed 600px max-width column, centered.
+- Sticky top bar: small GEO avatar (BrandMark on ink square), name "GEO", caption "Your AI employee" + subtle online dot. Hairline ink/08 border below. No gradients.
+- Scrollable transcript fills the middle.
+  - GEO bubbles: left-aligned, off-white (#faf8f4) fill, ink text, no radius (per brand bible — iMessage shape can be approximated with subtle squared bubbles to stay on-brand).
+  - User bubbles: right-aligned, ink fill, white text. Same squared shape.
+  - Each bubble shows a small timestamp on hover.
+  - Day separator at the top: "Today" in ink/40 caps.
+- Typing indicator: small GEO bubble with three animated dots before each new question.
+- Sticky bottom composer: text input + send button (ink background, white arrow). Disabled when the active question expects a non-text input.
 
-### 2. After "Submit Intake", the page appears stuck
+### Conversation flow (scripted order, hybrid AI reactions)
 
-Replace the silent spinner + 2.2s redirect with a GEO chat-style modal that owns the whole submit experience. This solves the "did it submit?" confusion AND delivers the AI-employee feel the user wants.
+The script keeps the existing intake fields. Each step is one or more chat turns. GEO question → user answer bubble → optional GEO reaction (AI-written) → next question.
 
-**New component: `src/components/GeoTalkingModal.tsx`**
-- Centered card on a dim backdrop. White surface, ink text, hairline ink/08 border, zero radius, no shadow (per brand bible).
-- Left: small GEO avatar (the existing `BrandMark` / "G" mark, ~40px square, ink background, white "G").
-- Right: chat-bubble-style text area with a typing indicator (three small ink dots animating) that resolves into the message.
-- Props: `open`, `messages: string[]` (sequence to type out), `onComplete?: () => void`.
-- Behavior: shows "GEO" label + "thinking" state for ~1.2s, then types/reveals each message in sequence with a short pause between, then calls `onComplete`.
-- Reusable so we can drop GEO in elsewhere later (post generation, change requests, etc.).
+1. Intro (no answer): "Hey, it's GEO. I'm the AI on your team. Going to ask you a few quick things so I can build your content engine. Should take about ten minutes."
+2. Name → text input.
+3. Brokerage → text input.
+4. Phone → text input (tel keyboard on mobile).
+5. Years in real estate → chip-bubble (single select: the existing 5 options).
+6. Primary city → text input.
+7. State → searchable chip list bubble (50 states).
+8. Surrounding cities → tag-bubble (add chips, "Done" button to send).
+9. Neighborhoods → tag-bubble.
+10. Counties → tag-bubble.
+11. Specialties → multi-select chip bubble (existing 10 options).
+12. Voice → multi-line text input.
+13. Values → multi-line text.
+14. Ideal client → multi-line text.
+15. Brokerage story → multi-line text.
+16. Differentiators → multi-line text.
+17. Property types → multi-select chip bubble.
+18. Primary color → color swatch bubble (preset palette + custom hex).
+19. Accent color → same.
+20. Outro: GEO summarizes ("Got it. Pemberton Real Estate, Edina, MN. Luxury, new construction, seller rep."), then "Sending this to the team. Your site will be ready within 7 days." → button bubble "Take me to my portal" → navigate to `/portal`.
 
-**Wire into `src/pages/Onboarding.tsx`:**
-- Replace the `launching` spinner block with `GeoTalkingModal`.
-- On Submit Intake click:
-  1. Open the modal immediately with thinking state.
-  2. In parallel, run the existing DB writes (intake_status complete, pipeline_stage = `intake_complete`) wrapped in try/catch with a toast on failure.
-  3. Modal sequence (rough copy, finalized in build):
-     - "Thank you. Let me read through everything you sent."
-     - "Looks great. I'm sending this over to the team now."
-     - "They'll have your site built within 7 days. Taking you to your portal."
-  4. After the sequence completes AND the DB writes resolve, navigate to `/portal`. Drop the 2.2s `setTimeout` — sequencing is driven by the modal, not an arbitrary timer.
-- Close-safety: if the user is on an admin account and `/portal` bounces, the modal still leaves them with a clear "Go to your portal" link as a fallback.
+After most user answers, GEO posts a short AI-generated reaction (1 short sentence, brand voice) before the next question. Step 1 (intro), tag-input steps mid-add, and the outro use scripted lines instead.
 
-### 3. GEO personality pass on the intake itself
+### Inline interactive bubbles
 
-Make the wizard read like GEO is interviewing the agent, not a faceless form.
+Each question type renders the same bubble shell with the right control inside:
+- `text` / `textarea` → composer accepts free text. Composer placeholder shows GEO's hint ("Type your full name").
+- `single-chip` → composer hides; chips render in a bubble below the question. Tap = answer.
+- `multi-chip` → chips render with a "Done" button at the bottom of the bubble. Tap toggles, "Done" sends.
+- `tag-input` → small input + add button inside a bubble; chips accumulate; "Done" sends the array.
+- `color` → preset swatches + a "Custom" tile that opens the native color input; "Done" sends.
+- `state-select` → searchable chip list (typeahead filter inside the bubble).
+- `cta` → a single tappable button bubble (used for the final "Take me to my portal").
 
-**Header (above the step bar in `Onboarding.tsx`):**
-- Replace the standalone "GEO" wordmark with a small GEO avatar + intro line on step 0 only:
-  - Avatar (same `BrandMark` "G")
-  - "Hey, it's GEO."
-  - Subline: "I've got a few quick questions so we can get your content engine up and running. Should take about ten minutes."
-- On steps 1–4, keep a slimmer persistent header: GEO avatar + the current step's question framed as GEO speaking (see below). This keeps the AI-employee presence without crowding the form.
+### Editing answers (tap to edit)
 
-**Per-step question rewrites (from form-style to GEO-style first person):**
-- Step 0 "Let's start with you." → "First, tell me about you."
-- Step 1 "Where do you work?" → "Where are you working? Give me every area you cover — the more I have, the more content I can generate."
-- Step 2 "What do you specialize in?" → "What do you specialize in? Pick everything that fits. These become the angles I write from."
-- Step 3 "Your voice & story." → "Now help me sound like you. I'll use every word here when I write your posts."
-- Step 4 "Make it yours." → "Last thing — what colors should I use on your site?"
-- Step 5 "You're ready." → "That's everything I need."
-- All copy stays within brand voice: short sentences, periods, no em dashes, no emojis, no hype words.
+- Every user bubble has a small pencil icon on hover. Tap → bubble flips into edit mode (same control as the original question). Saving replaces the bubble in place and updates persistence.
+- GEO does not re-ask. We only add a one-time small ink/40 line under the edited bubble: "Updated."
+- Edits never rewind the conversation. The user keeps their place at whatever question they were on.
 
-**Submit button label:** keep "Submit Intake" (button works as-is, modal handles the rest).
+### Persistence
 
-### Files touched
-- `supabase/functions/send-transactional-email/index.ts` — fetch + merge `email_template_copy`, then redeploy.
-- `src/components/GeoTalkingModal.tsx` — new reusable GEO-speaking modal.
-- `src/pages/Onboarding.tsx` — wire the modal into submit, swap the launch screen, apply GEO-voice header + per-step copy.
+Reuse the existing tables (`profiles`, `clients`, `client_markets`, `client_specialties`, `intake_status`). No schema changes.
 
-No DB migrations, no new env vars, no new dependencies.
+- On every answer, write that field (same mapping the wizard already uses).
+- Resume on reload: load all existing values, replay them as completed user bubbles in the transcript, set the active question to the first unanswered field. `intake_status.current_step` is repurposed to store the active question index (1..N). Existing rows are backward-compatible because the mapping starts at the same fields.
+- Submit: set `intake_status.completed_at` and `clients.pipeline_stage = 'intake_complete'`, then navigate.
+
+### Hybrid AI: GEO's reactions
+
+New edge function `geo-react`:
+- Input: `{ field: string, answer: string|string[], context: { name?, primaryCity?, state?, brokerage? } }`.
+- Calls Lovable AI Gateway, model `google/gemini-3-flash-preview`, with a tight system prompt enforcing: 1 sentence, max 14 words, brand voice (no em dashes, no emojis, no hype, no forbidden words). Returns `{ reaction: string }`.
+- Client calls it after each answer; while waiting it shows the typing indicator. If the function fails or times out (>2.5s), fall back to a small scripted reaction per field so the chat never stalls.
+- Auth: requires the user JWT (verify_jwt true). LOVABLE_API_KEY already provisioned.
+
+### File plan
+
+New:
+- `src/components/geo-chat/GeoChat.tsx` — main controller (state, persistence, scrolling, sending).
+- `src/components/geo-chat/script.ts` — ordered question list with type, label, hint, persist mapping, fallback reaction.
+- `src/components/geo-chat/Bubble.tsx` — GEO + user bubble shells, timestamps, edit affordance.
+- `src/components/geo-chat/TypingDots.tsx`.
+- `src/components/geo-chat/inputs/` — `TextInput`, `SingleChip`, `MultiChip`, `TagInput`, `ColorPicker`, `StateSelect`, `CtaButton`.
+- `src/components/geo-chat/useChatPersistence.ts` — load existing data, write per-field, advance `current_step`.
+- `supabase/functions/geo-react/index.ts` — AI reaction endpoint.
+
+Updated:
+- `src/pages/Onboarding.tsx` — strip the wizard, render `<GeoChat />` full-screen. Keep the existing GEO submit modal at the very end (or replace it with a final in-chat sequence — the chat already covers it, so we'll drop the modal).
+- `src/components/GeoTalkingModal.tsx` — kept (still useful for other flows like change requests).
+
+### Mobile
+
+- Same column at full width. Composer locks to the bottom (sticky, with safe-area padding). Bubbles stack tightly with 8px gaps. Tappable chips minimum 36px tall. Input scrolls into view above the keyboard.
+
+### Out of scope (call out, don't build now)
+
+- Voice input / dictation.
+- File uploads (headshot, logo) — current intake doesn't ask for them; if added later, will become an attachment bubble.
+- Branching conversations based on AI judgment of answers.
+- Server-side moderation of free-text answers.
