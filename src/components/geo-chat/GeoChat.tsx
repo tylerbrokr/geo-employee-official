@@ -254,13 +254,17 @@ export default function GeoChat() {
     setTurns((t) => [...t, { kind: "user", stepId: step.id, value }]);
     await persistField(step.id, value);
 
-    // Reaction (AI with fallback)
-    setTyping(true);
-    const reaction = await fetchReaction(step, value, dataRef.current);
-    setTyping(false);
-    if (reaction) {
-      setTurns((t) => [...t, { kind: "geo", id: `${step.id}-react-${Date.now()}`, text: reaction }]);
-      await delay(450);
+    // Reaction (AI with fallback) — only on selected steps so it doesn't feel performative
+    if (step.reactAfter) {
+      setTyping(true);
+      const reaction = await fetchReaction(step, value, dataRef.current);
+      setTyping(false);
+      if (reaction) {
+        setTurns((t) => [...t, { kind: "geo", id: `${step.id}-react-${Date.now()}`, text: reaction }]);
+        await delay(450);
+      }
+    } else {
+      await delay(250);
     }
 
     const nextIdx = stepIndex + 1;
