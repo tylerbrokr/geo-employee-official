@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -18,6 +18,7 @@ const STAGE_LABEL: Record<string, string> = {
 
 export default function AdminClientDetail() {
   const { clientId } = useParams<{ clientId: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [market, setMarket] = useState<any>(null);
@@ -28,6 +29,22 @@ export default function AdminClientDetail() {
   const [generatingTopics, setGeneratingTopics] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const deleteClient = async () => {
+    if (!clientId) return;
+    const label = profile?.full_name ?? profile?.email ?? client?.business_name ?? "this client";
+    if (!confirm(`Delete ${label}? This permanently removes the client, their account, and all related data. This cannot be undone.`)) return;
+    setDeleting(true);
+    const { data, error } = await supabase.functions.invoke("delete-client", { body: { client_id: clientId } });
+    setDeleting(false);
+    if (error || (data as any)?.error) {
+      toast.error(error?.message ?? (data as any)?.error ?? "Delete failed");
+      return;
+    }
+    toast.success("Client deleted");
+    navigate("/admin");
+  };
 
   const load = async () => {
     if (!clientId) return;
@@ -167,6 +184,9 @@ export default function AdminClientDetail() {
               <Rocket className="w-4 h-4" /> {goingLive ? "Starting..." : "Go Live"}
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={deleteClient} disabled={deleting} className="gap-2 text-destructive hover:text-destructive">
+            <Trash2 className="w-4 h-4" /> {deleting ? "Deleting..." : "Delete"}
+          </Button>
         </div>
       </div>
 
