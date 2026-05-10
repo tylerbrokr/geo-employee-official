@@ -16,40 +16,66 @@ import type { TemplateEntry } from './registry.ts'
 interface IntakeInviteProps {
   name?: string
   magicLink?: string
+  // Editable copy (DB-backed). All optional with hardcoded fallbacks
+  // so the template still renders cleanly if the DB row is missing.
+  eyebrow?: string
+  headline?: string
+  body_paragraphs?: string[]
+  cta_label?: string
+  signature_line_1?: string
+  signature_line_2?: string
 }
 
-const ClientIntakeInviteEmail = ({ name, magicLink }: IntakeInviteProps) => {
-  const greeting = name ? `Welcome, ${name}.` : 'Welcome.'
+const DEFAULTS = {
+  eyebrow: 'THE INNER CIRQL · GEO',
+  headline: 'Welcome, {name}.',
+  body_paragraphs: [
+    'Your GEO workspace is set up. The next step is a short intake. Five steps. About ten minutes. It tells GEO who you are, where you work, and what you sell.',
+    'Once you finish, your site goes into production and posts begin publishing on your schedule.',
+  ],
+  cta_label: 'Open the intake',
+  signature_line_1: 'The GEO team',
+  signature_line_2: 'The Inner Cirql',
+}
+
+function fillName(text: string, name?: string) {
+  if (!text) return text
+  if (text.includes('{name}')) {
+    return name ? text.replace(/\{name\}/g, name) : text.replace(/,?\s*\{name\}/g, '').replace(/\.{2,}/g, '.')
+  }
+  return text
+}
+
+const ClientIntakeInviteEmail = (props: IntakeInviteProps) => {
+  const { name, magicLink } = props
+  const eyebrow = props.eyebrow ?? DEFAULTS.eyebrow
+  const headline = fillName(props.headline ?? DEFAULTS.headline, name)
+  const paragraphs = props.body_paragraphs?.length ? props.body_paragraphs : DEFAULTS.body_paragraphs
+  const ctaLabel = props.cta_label ?? DEFAULTS.cta_label
+  const sig1 = props.signature_line_1 ?? DEFAULTS.signature_line_1
+  const sig2 = props.signature_line_2 ?? DEFAULTS.signature_line_2
   const link = magicLink ?? '#'
+
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>Your GEO workspace is live. Open the intake.</Preview>
+      <Preview>{paragraphs[0]?.slice(0, 120) ?? 'Your GEO workspace is live.'}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={dotsRow}>
             <Text style={dots}>● ● ● ● ● ● ● ● ● ●</Text>
           </Section>
 
-          <Text style={eyebrow}>THE INNER CIRQL · GEO</Text>
+          <Text style={eyebrowStyle}>{eyebrow}</Text>
 
-          <Heading style={h1}>{greeting}</Heading>
+          <Heading style={h1}>{headline}</Heading>
 
-          <Text style={text}>
-            Your GEO workspace is set up. The next step is a short intake.
-            Five steps. About ten minutes. It tells GEO who you are, where you
-            work, and what you sell.
-          </Text>
-
-          <Text style={text}>
-            Once you finish, your site goes into production and posts begin
-            publishing on your schedule.
-          </Text>
+          {paragraphs.map((p, i) => (
+            <Text key={i} style={text}>{fillName(p, name)}</Text>
+          ))}
 
           <Section style={ctaWrap}>
-            <Button href={link} style={ctaButton}>
-              Open the intake
-            </Button>
+            <Button href={link} style={ctaButton}>{ctaLabel}</Button>
           </Section>
 
           <Text style={fineprint}>
@@ -61,9 +87,9 @@ const ClientIntakeInviteEmail = ({ name, magicLink }: IntakeInviteProps) => {
           <Section style={hr} />
 
           <Text style={signature}>
-            The GEO team
+            {sig1}
             <br />
-            <span style={signatureMuted}>The Inner Cirql</span>
+            <span style={signatureMuted}>{sig2}</span>
           </Text>
         </Container>
       </Body>
@@ -73,7 +99,7 @@ const ClientIntakeInviteEmail = ({ name, magicLink }: IntakeInviteProps) => {
 
 export const template = {
   component: ClientIntakeInviteEmail,
-  subject: 'Your GEO workspace is live. Open the intake.',
+  subject: (data: Record<string, any>) => data?.subject ?? 'Your GEO workspace is live. Open the intake.',
   displayName: 'Client intake invite',
   previewData: {
     name: 'Jane',
@@ -112,7 +138,7 @@ const dots: React.CSSProperties = {
   lineHeight: 1,
 }
 
-const eyebrow: React.CSSProperties = {
+const eyebrowStyle: React.CSSProperties = {
   fontSize: '10px',
   letterSpacing: '2px',
   color: inkMuted,
