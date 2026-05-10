@@ -14,10 +14,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, full_name, business_name, resend } = await req.json();
+    const { email, full_name, first_name, last_name, business_name, resend } = await req.json();
     if (!email || typeof email !== "string") {
       return json({ error: "email required" }, 400);
     }
+    // Derive first name for email personalization (the {name} token).
+    const firstName: string | null =
+      (first_name && String(first_name).trim()) ||
+      (full_name && String(full_name).trim().split(/\s+/)[0]) ||
+      null;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -112,7 +117,7 @@ Deno.serve(async (req) => {
             templateName: "client-intake-invite",
             recipientEmail: email,
             idempotencyKey: `intake-invite-${userId}-${resend ? Date.now() : "initial"}`,
-            templateData: { name: full_name ?? null, magicLink },
+            templateData: { name: firstName, magicLink },
           }),
         });
         if (!resp.ok) {
