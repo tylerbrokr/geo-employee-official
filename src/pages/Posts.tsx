@@ -1,63 +1,49 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-
-type PostStatus = "Published" | "Scheduled";
-interface Post {
-  title: string;
-  query: string;
-  date: string;
-  status: PostStatus;
-}
-
-const allPosts: Post[] = [
-  { title: "Best realtor in Omaha", query: "Who is the best realtor in Omaha?", date: "Dec 14", status: "Published" },
-  { title: "Best realtor in Omaha for first-time buyers", query: "Best first-time buyer realtor Omaha", date: "Dec 11", status: "Published" },
-  { title: "Best luxury realtor in Dundee", query: "Luxury realtor Dundee Omaha", date: "Dec 7", status: "Published" },
-  { title: "Best realtor in Papillion", query: "Best realtor Papillion NE", date: "Dec 4", status: "Published" },
-  { title: "Best realtor in Douglas County", query: "Best realtor Douglas County", date: "Nov 30", status: "Published" },
-  { title: "Best realtor in Bellevue for new construction", query: "New construction realtor Bellevue NE", date: "Nov 27", status: "Published" },
-  { title: "Best realtor in Omaha for investors", query: "Investment property realtor Omaha", date: "Nov 23", status: "Published" },
-  { title: "Best realtor in Elkhorn", query: "Best realtor Elkhorn NE", date: "Nov 20", status: "Published" },
-  { title: "Best realtor in Papillion for families", query: "Family realtor Papillion", date: "Dec 18", status: "Scheduled" },
-  { title: "Best realtor in Douglas County for luxury homes", query: "Luxury homes Douglas County realtor", date: "Dec 21", status: "Scheduled" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useClient } from "@/hooks/useClient";
 
 type Tab = "All" | "Published" | "Scheduled";
 
 export default function Posts() {
+  const { client } = useClient();
   const [tab, setTab] = useState<Tab>("All");
+  const [posts, setPosts] = useState<any[]>([]);
 
-  const filtered = tab === "All" ? allPosts : allPosts.filter((p) => p.status === tab);
-  const tabs: Tab[] = ["Published", "Scheduled", "All"];
+  useEffect(() => {
+    if (!client) return;
+    supabase
+      .from("posts")
+      .select("*")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setPosts(data ?? []));
+  }, [client]);
+
+  const filtered = posts.filter((p) => {
+    if (tab === "All") return true;
+    if (tab === "Published") return p.status === "published";
+    return p.status === "scheduled";
+  });
 
   return (
     <DashboardLayout>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="mb-2">
           <h1 className="page-title">Posts</h1>
-          <p className="section-label mt-2">YOUR CONTENT ENGINE HAS PUBLISHED 14 POSTS</p>
+          <p className="section-label mt-2">{posts.filter((p) => p.status === "published").length} POSTS PUBLISHED</p>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-6 mt-6 mb-6">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`pb-3 text-sm font-medium transition-all duration-200 border-b-2 -mb-px ${
-                tab === t
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t}
-            </button>
+          {(["Published", "Scheduled", "All"] as Tab[]).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={`pb-3 text-sm font-medium border-b-2 -mb-px ${
+              tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}>{t}</button>
           ))}
         </div>
         <div className="fading-divider mb-6" />
 
-        {/* Table */}
         <div className="findr-card !p-0">
           <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-3">
             <span className="section-label">Post</span>
@@ -65,32 +51,28 @@ export default function Posts() {
             <span className="section-label">Status</span>
           </div>
           <div className="fading-divider mx-6" />
-          {filtered.map((post, i) => (
-            <div key={post.title}>
-              <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{post.query}</p>
-                </div>
-                <span className="text-[13px] text-muted-foreground self-center">{post.date}</span>
-                <span className="self-center flex items-center gap-1.5">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      post.status === "Published" ? "bg-emerald" : "bg-muted-foreground/50"
-                    }`}
-                  />
-                  <span
-                    className={`text-xs ${
-                      post.status === "Published" ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    {post.status}
+          {filtered.length === 0 ? (
+            <div className="px-6 py-10 text-sm text-muted-foreground">No posts to show yet.</div>
+          ) : (
+            filtered.map((post, i) => (
+              <div key={post.id}>
+                <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-6 py-4 hover:bg-muted/30">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{post.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{post.target_keyword ?? ""}</p>
+                  </div>
+                  <span className="text-[13px] text-muted-foreground self-center">
+                    {(post.published_at || post.scheduled_for) ? new Date(post.published_at ?? post.scheduled_for).toLocaleDateString() : "—"}
                   </span>
-                </span>
+                  <span className="self-center flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${post.status === "published" ? "bg-emerald" : "bg-muted-foreground/50"}`} />
+                    <span className={`text-xs ${post.status === "published" ? "text-primary" : "text-muted-foreground"} capitalize`}>{post.status}</span>
+                  </span>
+                </div>
+                {i < filtered.length - 1 && <div className="fading-divider mx-6" />}
               </div>
-              {i < filtered.length - 1 && <div className="fading-divider mx-6" />}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </motion.div>
     </DashboardLayout>
