@@ -36,15 +36,19 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const authHeader = req.headers.get("Authorization") ?? "";
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return json({ error: "unauthorized" }, 401);
-
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-    if (!roles?.some((r: any) => r.role === "admin")) return json({ error: "forbidden" }, 403);
+
+    // Allow internal service-role calls (autopilot replenish); otherwise require admin user
+    const isServiceRoleCall = authHeader === `Bearer ${serviceKey}`;
+    if (!isServiceRoleCall) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await userClient.auth.getUser();
+      if (!user) return json({ error: "unauthorized" }, 401);
+      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
+      if (!roles?.some((r: any) => r.role === "admin")) return json({ error: "forbidden" }, 403);
+    }
 
     const [{ data: client }, { data: market }, { data: spec }] = await Promise.all([
       admin.from("clients").select("*").eq("id", client_id).maybeSingle(),
