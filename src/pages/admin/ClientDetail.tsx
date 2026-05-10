@@ -105,6 +105,42 @@ export default function AdminClientDetail() {
         </div>
       </div>
 
+      <div className="findr-card">
+        <p className="section-label mb-3">VOICE & STORY</p>
+        {(() => {
+          const c: any = client;
+          const fields: [string, string | undefined][] = [
+            ["Voice", c.voice],
+            ["Values", c.values_text],
+            ["Ideal client", c.ideal_client],
+            ["Story", c.brokerage_story],
+            ["Differentiators", c.differentiators],
+          ];
+          const hasAny = fields.some(([, v]) => v && v.trim());
+          if (!hasAny) return <span className="text-sm text-muted-foreground">Not yet provided.</span>;
+          return (
+            <div className="space-y-3 text-sm">
+              {fields.map(([label, val]) => val && val.trim() ? (
+                <div key={label}>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
+                  <div className="whitespace-pre-line">{val}</div>
+                </div>
+              ) : null)}
+              {c.property_types?.length ? (
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Property types</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.property_types.map((p: string) => (
+                      <span key={p} className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })()}
+      </div>
+
       <div>
         <div className="flex items-center justify-between mb-3">
           <p className="section-label">POSTS ({posts.length})</p>
