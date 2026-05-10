@@ -1,43 +1,64 @@
-The actual problem is not custom SMTP inside Supabase.
+## Three fixes + GEO personality pass on the intake
 
-Your app is currently using Lovable's transactional email sender with the verified sender domain `notify.geoemployee.com`. That domain is verified. The failure is happening before any email can be queued or sent.
+### 1. Email copy from the Emails tab is ignored on real sends
 
-The deployed email function is trying to read `suppressed_emails`, then write `email_send_log`, then call `enqueue_email`. In your Supabase database, all of those required email queue pieces are missing:
+**Cause:** `send-transactional-email` renders the template using only the `templateData` passed in by the caller (just `name` + `magicLink`). It never reads the `email_template_copy` row, so edits in Admin → Emails only show up in the live preview and the test send (both pass row contents in directly), not in the actual `create-client` invite.
 
-- `suppressed_emails` does not exist.
-- `email_send_log` does not exist.
-- `email_unsubscribe_tokens` does not exist.
-- `email_send_state` does not exist.
-- `enqueue_email` does not exist.
+**Fix:** In `supabase/functions/send-transactional-email/index.ts`, before rendering:
+- Look up `email_template_copy` by `template_name` using the existing service-role client.
+- Merge its fields (`eyebrow`, `headline`, `body_paragraphs`, `cta_label`, `signature_line_1`, `signature_line_2`) into `templateData`, letting any explicit `templateData` field win.
+- If the row has a non-empty `subject`, use it as the subject (overriding the template default).
+- Redeploy the function.
 
-The latest function log confirms the exact failure: the send function refuses to send because it cannot find `public.suppressed_emails`.
+### 2. After "Submit Intake", the page appears stuck
 
-So yes, this is a Supabase-side infrastructure problem, but not an SMTP configuration problem. Adding custom SMTP in Supabase would only affect Supabase Auth emails unless we rewired the app to use Supabase auth/invite email flows. It would not fix this app's current branded intake email path.
+Replace the silent spinner + 2.2s redirect with a GEO chat-style modal that owns the whole submit experience. This solves the "did it submit?" confusion AND delivers the AI-employee feel the user wants.
 
-Plan to fix it:
+**New component: `src/components/GeoTalkingModal.tsx`**
+- Centered card on a dim backdrop. White surface, ink text, hairline ink/08 border, zero radius, no shadow (per brand bible).
+- Left: small GEO avatar (the existing `BrandMark` / "G" mark, ~40px square, ink background, white "G").
+- Right: chat-bubble-style text area with a typing indicator (three small ink dots animating) that resolves into the message.
+- Props: `open`, `messages: string[]` (sequence to type out), `onComplete?: () => void`.
+- Behavior: shows "GEO" label + "thinking" state for ~1.2s, then types/reveals each message in sequence with a short pause between, then calls `onComplete`.
+- Reusable so we can drop GEO in elsewhere later (post generation, change requests, etc.).
 
-1. Replace the current queue-dependent transactional email implementation with an external-Supabase-compatible direct send path.
-   - Keep the existing `notify.geoemployee.com` sender domain.
-   - Keep the existing branded React email template.
-   - Keep `{name}` mapped to the client's first name.
-   - Remove the dependency on missing queue tables/functions for this invite email path.
+**Wire into `src/pages/Onboarding.tsx`:**
+- Replace the `launching` spinner block with `GeoTalkingModal`.
+- On Submit Intake click:
+  1. Open the modal immediately with thinking state.
+  2. In parallel, run the existing DB writes (intake_status complete, pipeline_stage = `intake_complete`) wrapped in try/catch with a toast on failure.
+  3. Modal sequence (rough copy, finalized in build):
+     - "Thank you. Let me read through everything you sent."
+     - "Looks great. I'm sending this over to the team now."
+     - "They'll have your site built within 7 days. Taking you to your portal."
+  4. After the sequence completes AND the DB writes resolve, navigate to `/portal`. Drop the 2.2s `setTimeout` — sequencing is driven by the modal, not an arbitrary timer.
+- Close-safety: if the user is on an admin account and `/portal` bounces, the modal still leaves them with a clear "Go to your portal" link as a fallback.
 
-2. Add minimal durable send logging that works in this external Supabase project.
-   - Create a simple `email_send_log` table for admin-visible debugging.
-   - Record attempted, sent, and failed invite emails.
-   - Do not create the full Lovable queue system manually.
+### 3. GEO personality pass on the intake itself
 
-3. Update `create-client` to return a clear result.
-   - `email_sent: true` only when the send provider accepts the email.
-   - `email_error` includes a useful reason when it fails.
+Make the wizard read like GEO is interviewing the agent, not a faceless form.
 
-4. Deploy the updated edge functions and test a client invite.
-   - Verify the function no longer fails on missing queue tables.
-   - Verify the log records the send attempt.
-   - If the direct provider rejects the send, we will see the real provider error instead of the current missing-table error.
+**Header (above the step bar in `Onboarding.tsx`):**
+- Replace the standalone "GEO" wordmark with a small GEO avatar + intro line on step 0 only:
+  - Avatar (same `BrandMark` "G")
+  - "Hey, it's GEO."
+  - Subline: "I've got a few quick questions so we can get your content engine up and running. Should take about ten minutes."
+- On steps 1–4, keep a slimmer persistent header: GEO avatar + the current step's question framed as GEO speaking (see below). This keeps the AI-employee presence without crowding the form.
 
-What you do not need right now:
+**Per-step question rewrites (from form-style to GEO-style first person):**
+- Step 0 "Let's start with you." → "First, tell me about you."
+- Step 1 "Where do you work?" → "Where are you working? Give me every area you cover — the more I have, the more content I can generate."
+- Step 2 "What do you specialize in?" → "What do you specialize in? Pick everything that fits. These become the angles I write from."
+- Step 3 "Your voice & story." → "Now help me sound like you. I'll use every word here when I write your posts."
+- Step 4 "Make it yours." → "Last thing — what colors should I use on your site?"
+- Step 5 "You're ready." → "That's everything I need."
+- All copy stays within brand voice: short sentences, periods, no em dashes, no emojis, no hype words.
 
-- You do not need Cloud → Emails access for this fix.
-- You do not need to set up Supabase custom SMTP for this current invite email flow.
-- You do not need to switch providers unless the direct send endpoint shows a provider-level rejection after the missing Supabase infrastructure is removed.
+**Submit button label:** keep "Submit Intake" (button works as-is, modal handles the rest).
+
+### Files touched
+- `supabase/functions/send-transactional-email/index.ts` — fetch + merge `email_template_copy`, then redeploy.
+- `src/components/GeoTalkingModal.tsx` — new reusable GEO-speaking modal.
+- `src/pages/Onboarding.tsx` — wire the modal into submit, swap the launch screen, apply GEO-voice header + per-step copy.
+
+No DB migrations, no new env vars, no new dependencies.
