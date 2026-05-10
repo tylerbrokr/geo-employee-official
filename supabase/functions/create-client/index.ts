@@ -101,16 +101,26 @@ Deno.serve(async (req) => {
     let email_error: string | null = null;
     if (magicLink) {
       try {
-        const { error: emailErr } = await admin.functions.invoke("send-transactional-email", {
-          body: {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${serviceKey}`,
+            apikey: serviceKey,
+          },
+          body: JSON.stringify({
             templateName: "client-intake-invite",
             recipientEmail: email,
             idempotencyKey: `intake-invite-${userId}-${resend ? Date.now() : "initial"}`,
             templateData: { name: full_name ?? null, magicLink },
-          },
+          }),
         });
-        if (emailErr) email_error = emailErr.message;
-        else email_sent = true;
+        if (!resp.ok) {
+          const txt = await resp.text().catch(() => "");
+          email_error = `send-transactional-email ${resp.status}: ${txt}`;
+        } else {
+          email_sent = true;
+        }
       } catch (e: any) {
         email_error = e?.message ?? String(e);
       }
