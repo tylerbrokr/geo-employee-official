@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, full_name, business_name } = await req.json();
+    const { email, full_name, business_name, resend } = await req.json();
     if (!email || typeof email !== "string") {
       return json({ error: "email required" }, 400);
     }
@@ -94,11 +94,34 @@ Deno.serve(async (req) => {
       options: { redirectTo: `${origin}/onboarding` },
     });
     if (linkErr) throw linkErr;
+    const magicLink = linkData.properties?.action_link ?? null;
+
+    // Send branded intake invite email via send-transactional-email.
+    let email_sent = false;
+    let email_error: string | null = null;
+    if (magicLink) {
+      try {
+        const { error: emailErr } = await admin.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "client-intake-invite",
+            recipientEmail: email,
+            idempotencyKey: `intake-invite-${userId}-${resend ? Date.now() : "initial"}`,
+            templateData: { name: full_name ?? null, magicLink },
+          },
+        });
+        if (emailErr) email_error = emailErr.message;
+        else email_sent = true;
+      } catch (e: any) {
+        email_error = e?.message ?? String(e);
+      }
+    }
 
     return json({
       client_id: clientId,
       user_id: userId,
-      magic_link: linkData.properties?.action_link ?? null,
+      magic_link: magicLink,
+      email_sent,
+      email_error,
     });
   } catch (e: any) {
     return json({ error: e.message ?? String(e) }, 500);
