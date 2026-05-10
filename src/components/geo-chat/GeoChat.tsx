@@ -98,6 +98,7 @@ export default function GeoChat() {
       for (let i = 0; i < SCRIPT.length; i++) {
         const step = SCRIPT[i];
         step.prompt.forEach((p) => replay.push({ kind: "geo", id: `${step.id}-${p}`, text: p }));
+        if (step.hint) replay.push({ kind: "geo", id: `${step.id}-hint`, text: step.hint, hint: true });
         if (!step.input) continue;
         const val = (loaded as any)[step.id];
         const isEmpty = Array.isArray(val) ? val.length === 0 : !val;
