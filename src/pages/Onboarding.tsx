@@ -126,6 +126,12 @@ export default function Onboarding() {
     neighborhoods: [],
     counties: [],
     specialties: new Set(),
+    voice: "",
+    valuesText: "",
+    idealClient: "",
+    brokerageStory: "",
+    differentiators: "",
+    propertyTypes: new Set(),
     primaryColor: "#059669",
     accentColor: "#0F172A",
   });
