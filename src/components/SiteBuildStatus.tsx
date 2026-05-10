@@ -60,7 +60,7 @@ export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props
     return (
       <div className="border border-ink/[0.08] bg-[#faf8f4] px-6 py-8">
         <div className="flex items-center gap-3 mb-2">
-          <span className="w-2 h-2 rounded-full bg-[#c9a96e] geo-pulse" />
+          <span className="w-2 h-2 rounded-full bg-[#c9a96e] gold-pulse" />
           <p className="text-[10px] tracking-[2px] uppercase text-ink/50">In progress</p>
         </div>
         <p className="text-[15px] text-ink leading-relaxed">
@@ -74,7 +74,7 @@ export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props
     <>
       <div className="border border-ink/[0.08] bg-[#faf8f4] px-8 py-10">
         <div className="flex items-center gap-2 mb-3">
-          <span className="w-2 h-2 rounded-full bg-[#c9a96e] geo-pulse" />
+          <span className="w-2 h-2 rounded-full bg-[#c9a96e] gold-pulse" />
           <p className="text-[10px] tracking-[2px] uppercase text-ink/50">Build in progress</p>
         </div>
         <h2 className="font-display text-[32px] leading-[1.15] text-ink mb-2">GEO is building your site.</h2>
@@ -90,7 +90,7 @@ export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props
                   s.state === "complete"
                     ? "bg-[#c9a96e]"
                     : s.state === "active"
-                    ? "bg-[#c9a96e] geo-pulse"
+                    ? "bg-[#c9a96e] gold-pulse"
                     : "bg-ink/15"
                 }`}
               />
