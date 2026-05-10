@@ -86,7 +86,6 @@ Deno.serve(async (req) => {
   }
 
   // Best-effort log (table optional — ignore failures so they don't block sending)
-  const supabase = createClient(supabaseUrl, serviceKey)
   const logAttempt = async (status: string, error_message: string | null = null, provider_id: string | null = null) => {
     try {
       await supabase.from('email_send_log').insert({
