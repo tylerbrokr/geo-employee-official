@@ -96,6 +96,45 @@ export type Database = {
           },
         ]
       }
+      client_sites: {
+        Row: {
+          client_id: string
+          created_at: string
+          custom_domain: string | null
+          dns_records: Json | null
+          dns_verified: boolean
+          id: string
+          provisioned_at: string | null
+          subdomain: string | null
+          updated_at: string
+          vercel_domain_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          custom_domain?: string | null
+          dns_records?: Json | null
+          dns_verified?: boolean
+          id?: string
+          provisioned_at?: string | null
+          subdomain?: string | null
+          updated_at?: string
+          vercel_domain_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          custom_domain?: string | null
+          dns_records?: Json | null
+          dns_verified?: boolean
+          id?: string
+          provisioned_at?: string | null
+          subdomain?: string | null
+          updated_at?: string
+          vercel_domain_id?: string | null
+        }
+        Relationships: []
+      }
       client_specialties: {
         Row: {
           client_id: string
@@ -125,53 +164,143 @@ export type Database = {
           },
         ]
       }
+      client_topics: {
+        Row: {
+          client_id: string
+          created_at: string
+          geo_scope: string | null
+          h2s: string[]
+          id: string
+          kind: Database["public"]["Enums"]["topic_kind"]
+          niche: string | null
+          position: number
+          primary_keyword: string | null
+          secondary_keywords: string[]
+          status: Database["public"]["Enums"]["topic_status"]
+          talking_points: string[]
+          title: string
+          updated_at: string
+          used_at: string | null
+          word_count: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          geo_scope?: string | null
+          h2s?: string[]
+          id?: string
+          kind: Database["public"]["Enums"]["topic_kind"]
+          niche?: string | null
+          position?: number
+          primary_keyword?: string | null
+          secondary_keywords?: string[]
+          status?: Database["public"]["Enums"]["topic_status"]
+          talking_points?: string[]
+          title: string
+          updated_at?: string
+          used_at?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          geo_scope?: string | null
+          h2s?: string[]
+          id?: string
+          kind?: Database["public"]["Enums"]["topic_kind"]
+          niche?: string | null
+          position?: number
+          primary_keyword?: string | null
+          secondary_keywords?: string[]
+          status?: Database["public"]["Enums"]["topic_status"]
+          talking_points?: string[]
+          title?: string
+          updated_at?: string
+          used_at?: string | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           accent_color: string | null
+          autopilot_day: number | null
+          autopilot_enabled: boolean
+          autopilot_started_at: string | null
           brokerage: string | null
+          brokerage_story: string | null
           business_name: string | null
           created_at: string
+          differentiators: string | null
           headshot_url: string | null
           id: string
+          ideal_client: string | null
+          last_autopublish_at: string | null
           logo_url: string | null
           owner_user_id: string
           phone: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           primary_color: string | null
+          property_types: string[]
           site_status: Database["public"]["Enums"]["site_status"]
           site_url: string | null
           updated_at: string
+          values_text: string | null
+          voice: string | null
           years_experience: string | null
         }
         Insert: {
           accent_color?: string | null
+          autopilot_day?: number | null
+          autopilot_enabled?: boolean
+          autopilot_started_at?: string | null
           brokerage?: string | null
+          brokerage_story?: string | null
           business_name?: string | null
           created_at?: string
+          differentiators?: string | null
           headshot_url?: string | null
           id?: string
+          ideal_client?: string | null
+          last_autopublish_at?: string | null
           logo_url?: string | null
           owner_user_id: string
           phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           primary_color?: string | null
+          property_types?: string[]
           site_status?: Database["public"]["Enums"]["site_status"]
           site_url?: string | null
           updated_at?: string
+          values_text?: string | null
+          voice?: string | null
           years_experience?: string | null
         }
         Update: {
           accent_color?: string | null
+          autopilot_day?: number | null
+          autopilot_enabled?: boolean
+          autopilot_started_at?: string | null
           brokerage?: string | null
+          brokerage_story?: string | null
           business_name?: string | null
           created_at?: string
+          differentiators?: string | null
           headshot_url?: string | null
           id?: string
+          ideal_client?: string | null
+          last_autopublish_at?: string | null
           logo_url?: string | null
           owner_user_id?: string
           phone?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           primary_color?: string | null
+          property_types?: string[]
           site_status?: Database["public"]["Enums"]["site_status"]
           site_url?: string | null
           updated_at?: string
+          values_text?: string | null
+          voice?: string | null
           years_experience?: string | null
         }
         Relationships: []
@@ -209,7 +338,9 @@ export type Database = {
         Row: {
           body: string
           client_id: string
+          cover_image_url: string | null
           created_at: string
+          excerpt: string | null
           id: string
           published_at: string | null
           scheduled_for: string | null
@@ -218,12 +349,15 @@ export type Database = {
           tag: string | null
           target_keyword: string | null
           title: string
+          topic_id: string | null
           updated_at: string
         }
         Insert: {
           body?: string
           client_id: string
+          cover_image_url?: string | null
           created_at?: string
+          excerpt?: string | null
           id?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -232,12 +366,15 @@ export type Database = {
           tag?: string | null
           target_keyword?: string | null
           title: string
+          topic_id?: string | null
           updated_at?: string
         }
         Update: {
           body?: string
           client_id?: string
+          cover_image_url?: string | null
           created_at?: string
+          excerpt?: string | null
           id?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -246,6 +383,7 @@ export type Database = {
           tag?: string | null
           target_keyword?: string | null
           title?: string
+          topic_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -254,6 +392,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "client_topics"
             referencedColumns: ["id"]
           },
         ]
@@ -332,8 +477,17 @@ export type Database = {
         | "profile"
         | "other"
       change_request_status: "open" | "in_progress" | "resolved"
+      pipeline_stage:
+        | "draft"
+        | "intake_sent"
+        | "intake_complete"
+        | "site_live"
+        | "topics_ready"
+        | "autopilot"
       post_status: "draft" | "pending_review" | "scheduled" | "published"
       site_status: "pending" | "building" | "live"
+      topic_kind: "seo" | "geo"
+      topic_status: "queued" | "used" | "skipped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -470,8 +624,18 @@ export const Constants = {
         "other",
       ],
       change_request_status: ["open", "in_progress", "resolved"],
+      pipeline_stage: [
+        "draft",
+        "intake_sent",
+        "intake_complete",
+        "site_live",
+        "topics_ready",
+        "autopilot",
+      ],
       post_status: ["draft", "pending_review", "scheduled", "published"],
       site_status: ["pending", "building", "live"],
+      topic_kind: ["seo", "geo"],
+      topic_status: ["queued", "used", "skipped"],
     },
   },
 } as const
