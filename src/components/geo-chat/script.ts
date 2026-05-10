@@ -141,12 +141,14 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["Who's your ideal client?"],
     input: { type: "textarea", placeholder: "Young families relocating, first-time buyers in their 30s..." },
     fallback: "Clear picture.",
+    reactAfter: true,
   },
   {
     id: "brokerageStory",
     prompt: ["Tell me your story. How'd you get here?"],
     input: { type: "textarea", placeholder: "Started in 2018 after a career in teaching..." },
     fallback: "Good background.",
+    reactAfter: true,
   },
   {
     id: "differentiators",
