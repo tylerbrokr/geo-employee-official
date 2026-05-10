@@ -3,15 +3,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * The Inner Cirql badges: square, hairline, ink-on-white or gold-on-ink.
+ */
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-none border px-2 py-0.5 font-ui text-[10px] font-medium uppercase tracking-[0.15em] transition-opacity",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        default: "border-ink/[0.16] bg-white text-ink",
+        secondary: "border-ink/[0.08] bg-off-white text-ink",
+        gold: "border-transparent bg-gold text-ink",
+        outline: "border-ink/[0.28] bg-transparent text-ink",
+        destructive: "border-transparent bg-destructive text-destructive-foreground",
       },
     },
     defaultVariants: {
