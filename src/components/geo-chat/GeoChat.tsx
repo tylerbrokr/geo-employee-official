@@ -335,15 +335,10 @@ export default function GeoChat() {
       {/* Top bar */}
       <header className="flex-shrink-0 border-b border-ink/[0.08] bg-white">
         <div className="max-w-[640px] mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 bg-ink flex items-center justify-center">
-            <BrandMark size={20} />
-          </div>
-          <div>
-            <div className="text-[14px] font-medium text-ink leading-tight">GEO</div>
-            <div className="text-[11px] text-ink/50 leading-tight flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(160,84%,30%)]" />
-              Your AI employee
-            </div>
+          <BrandLockup markSize={28} wordmarkSize={22} />
+          <div className="ml-auto text-[11px] text-ink/50 leading-tight flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[hsl(160,84%,30%)]" />
+            Your AI employee
           </div>
         </div>
       </header>
