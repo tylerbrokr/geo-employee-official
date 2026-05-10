@@ -49,12 +49,26 @@ export default function AdminClientDetail() {
 
   if (!client) return <div className="text-sm text-muted-foreground">Loading...</div>;
 
+  const stage = (client as any).pipeline_stage ?? "draft";
+  const STAGE_LABEL: Record<string, string> = {
+    draft: "Draft",
+    intake_sent: "Intake sent",
+    intake_complete: "Intake complete",
+    site_live: "Site live",
+    topics_ready: "Topics ready",
+    autopilot: "Autopilot",
+  };
   return (
     <div className="space-y-8">
-      <div>
-        <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
-        <h1 className="page-title mt-2">{profile?.full_name ?? client.business_name ?? "Client"}</h1>
-        <p className="text-sm text-muted-foreground">{profile?.email}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
+          <h1 className="page-title mt-2">{profile?.full_name ?? client.business_name ?? "Client"}</h1>
+          <p className="text-sm text-muted-foreground">{profile?.email}</p>
+        </div>
+        <span className="px-3 py-1.5 rounded-md text-xs font-semibold" style={{ background: "hsl(160 84% 30% / 0.1)", color: "hsl(160 84% 30%)" }}>
+          {STAGE_LABEL[stage] ?? stage}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
