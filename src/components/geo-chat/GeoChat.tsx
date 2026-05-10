@@ -361,6 +361,13 @@ export default function GeoChat() {
                   </GeoBubble>
                 );
               }
+              if (turn.hint) {
+                return (
+                  <GeoBubble key={i} hint>
+                    <span className="text-[12px] italic text-ink/55 leading-[1.45]">{turn.text}</span>
+                  </GeoBubble>
+                );
+              }
               return <GeoBubble key={i}><span className="text-[15px] text-ink leading-[1.5]">{turn.text}</span></GeoBubble>;
             }
             // user turn
@@ -438,13 +445,13 @@ async function fetchReaction(step: ScriptStep, value: any, data: FormState): Pro
 }
 
 // ----- Bubbles -----
-function GeoBubble({ children }: { children: React.ReactNode }) {
+function GeoBubble({ children, hint }: { children: React.ReactNode; hint?: boolean }) {
   return (
-    <div className="flex items-end gap-2 max-w-[80%] animate-fade-in">
-      <div className="flex-shrink-0 w-7 h-7 bg-ink flex items-center justify-center mb-0.5">
-        <BrandMark size={14} />
+    <div className="flex items-start gap-2 max-w-[80%] animate-fade-in">
+      <div className="flex-shrink-0 w-6 flex items-start justify-center pt-1.5">
+        {hint ? <span className="w-1.5 h-1.5 rounded-full bg-ink/15 mt-1" /> : <BrandMark size={22} />}
       </div>
-      <div className="bg-[#faf8f4] border border-ink/[0.06] px-4 py-2.5 rounded-[18px] rounded-bl-[4px]">
+      <div className={`${hint ? "bg-transparent border-0 px-0 py-0" : "bg-[#faf8f4] border border-ink/[0.06] px-4 py-2.5 rounded-[18px] rounded-bl-[4px]"}`}>
         {children}
       </div>
     </div>
