@@ -289,19 +289,40 @@ export default function GeoChat() {
 
   // ----- Finalize -----
   const finalize = async () => {
-    if (!clientId) return navigate("/portal");
+    if (!clientId) {
+      window.location.assign("/portal");
+      return;
+    }
     setSubmitting(true);
     try {
-      await supabase.from("intake_status").upsert({
+      const { error: e1 } = await supabase.from("intake_status").upsert({
         client_id: clientId,
         current_step: SCRIPT.length + 1,
         completed_at: new Date().toISOString(),
       }, { onConflict: "client_id" });
-      await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
+      if (e1) throw e1;
+
+      const { error: e2 } = await supabase
+        .from("clients")
+        .update({ pipeline_stage: "intake_complete" } as any)
+        .eq("id", clientId);
+      if (e2) throw e2;
+
+      // Verify the write actually landed before exposing the CTA
+      const { data: verify } = await supabase
+        .from("intake_status")
+        .select("completed_at")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (!verify?.completed_at) throw new Error("Intake didn't save. Try again.");
+
+      setTurns((t) => [...t, { kind: "geo", id: `take-portal-${Date.now()}`, text: "__cta__" }]);
     } catch (e: any) {
       toast.error(e?.message ?? "Could not submit intake");
+      setTurns((t) => [...t, { kind: "geo", id: `err-${Date.now()}`, text: "Something didn't save on my end. Refresh and try sending the last answer again." }]);
+    } finally {
+      setSubmitting(false);
     }
-    setTurns((t) => [...t, { kind: "geo", id: `take-portal-${Date.now()}`, text: "__cta__" }]);
   };
 
   // ----- Render -----
