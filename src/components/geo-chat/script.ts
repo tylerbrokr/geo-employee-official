@@ -27,6 +27,8 @@ export interface ScriptStep {
   emptyLabel?: string;
   // Per-field fallback reaction when AI fails / for skipped answers.
   fallback: string;
+  // When true, GEO posts a short reaction after this answer. Default false.
+  reactAfter?: boolean;
 }
 
 export const US_STATES = [
@@ -79,12 +81,14 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["How long have you been in real estate?"],
     input: { type: "single-chip", options: YEARS_OPTIONS },
     fallback: "Solid.",
+    reactAfter: true,
   },
   {
     id: "primaryCity",
     prompt: ["What's your primary city? The one you want to own."],
     input: { type: "text", placeholder: "City" },
     fallback: "Good market.",
+    reactAfter: true,
   },
   {
     id: "state",
@@ -118,6 +122,7 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["What do you specialize in? Pick everything that fits."],
     input: { type: "multi-chip", options: SPECIALTIES },
     fallback: "Good angles for content.",
+    reactAfter: true,
   },
   {
     id: "voice",
@@ -136,12 +141,14 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["Who's your ideal client?"],
     input: { type: "textarea", placeholder: "Young families relocating, first-time buyers in their 30s..." },
     fallback: "Clear picture.",
+    reactAfter: true,
   },
   {
     id: "brokerageStory",
     prompt: ["Tell me your story. How'd you get here?"],
     input: { type: "textarea", placeholder: "Started in 2018 after a career in teaching..." },
     fallback: "Good background.",
+    reactAfter: true,
   },
   {
     id: "differentiators",
@@ -166,6 +173,7 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["And an accent color to pair with it?"],
     input: { type: "color" },
     fallback: "Good pairing.",
+    reactAfter: true,
   },
   {
     id: "outro",

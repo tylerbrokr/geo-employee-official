@@ -254,13 +254,17 @@ export default function GeoChat() {
     setTurns((t) => [...t, { kind: "user", stepId: step.id, value }]);
     await persistField(step.id, value);
 
-    // Reaction (AI with fallback)
-    setTyping(true);
-    const reaction = await fetchReaction(step, value, dataRef.current);
-    setTyping(false);
-    if (reaction) {
-      setTurns((t) => [...t, { kind: "geo", id: `${step.id}-react-${Date.now()}`, text: reaction }]);
-      await delay(450);
+    // Reaction (AI with fallback) — only on selected steps so it doesn't feel performative
+    if (step.reactAfter) {
+      setTyping(true);
+      const reaction = await fetchReaction(step, value, dataRef.current);
+      setTyping(false);
+      if (reaction) {
+        setTurns((t) => [...t, { kind: "geo", id: `${step.id}-react-${Date.now()}`, text: reaction }]);
+        await delay(450);
+      }
+    } else {
+      await delay(250);
     }
 
     const nextIdx = stepIndex + 1;
@@ -285,19 +289,40 @@ export default function GeoChat() {
 
   // ----- Finalize -----
   const finalize = async () => {
-    if (!clientId) return navigate("/portal");
+    if (!clientId) {
+      window.location.assign("/portal");
+      return;
+    }
     setSubmitting(true);
     try {
-      await supabase.from("intake_status").upsert({
+      const { error: e1 } = await supabase.from("intake_status").upsert({
         client_id: clientId,
         current_step: SCRIPT.length + 1,
         completed_at: new Date().toISOString(),
       }, { onConflict: "client_id" });
-      await supabase.from("clients").update({ pipeline_stage: "intake_complete" } as any).eq("id", clientId);
+      if (e1) throw e1;
+
+      const { error: e2 } = await supabase
+        .from("clients")
+        .update({ pipeline_stage: "intake_complete" } as any)
+        .eq("id", clientId);
+      if (e2) throw e2;
+
+      // Verify the write actually landed before exposing the CTA
+      const { data: verify } = await supabase
+        .from("intake_status")
+        .select("completed_at")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (!verify?.completed_at) throw new Error("Intake didn't save. Try again.");
+
+      setTurns((t) => [...t, { kind: "geo", id: `take-portal-${Date.now()}`, text: "__cta__" }]);
     } catch (e: any) {
       toast.error(e?.message ?? "Could not submit intake");
+      setTurns((t) => [...t, { kind: "geo", id: `err-${Date.now()}`, text: "Something didn't save on my end. Refresh and try sending the last answer again." }]);
+    } finally {
+      setSubmitting(false);
     }
-    setTurns((t) => [...t, { kind: "geo", id: `take-portal-${Date.now()}`, text: "__cta__" }]);
   };
 
   // ----- Render -----
@@ -329,7 +354,7 @@ export default function GeoChat() {
                 return (
                   <GeoBubble key={i}>
                     <button
-                      onClick={() => navigate("/portal")}
+                      onClick={() => window.location.assign("/portal")}
                       className="bg-ink text-white px-5 py-2.5 text-[13px] font-medium hover:opacity-85 transition-opacity"
                     >
                       Take me to my portal
