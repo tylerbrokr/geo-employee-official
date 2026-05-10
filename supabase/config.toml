@@ -2,3 +2,12 @@ project_id = "gfxdpbitanyuaowhiwzc"
 
 [functions.generate-post]
 verify_jwt = true
+
+[functions.create-client]
+verify_jwt = true
+
+[functions.generate-master-topics]
+verify_jwt = true
+
+[functions.autopilot-tick]
+verify_jwt = false
