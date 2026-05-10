@@ -124,6 +124,21 @@ export default function AdminClientDetail() {
     else { toast.success("Autopilot paused"); load(); }
   };
 
+  const resendIntakeEmail = async () => {
+    if (!profile?.email) { toast.error("No email on file"); return; }
+    setResendingEmail(true);
+    const { data, error } = await supabase.functions.invoke("create-client", {
+      body: { email: profile.email, full_name: profile.full_name, business_name: client.business_name, resend: true },
+    });
+    setResendingEmail(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error ?? error?.message ?? "Failed");
+      return;
+    }
+    if ((data as any).email_sent) toast.success(`Intake email sent to ${profile.email}`);
+    else toast.error((data as any).email_error ?? "Email did not send");
+  };
+
   if (!client) return <div className="text-sm text-muted-foreground">Loading...</div>;
 
   const stage = client.pipeline_stage ?? "draft";
