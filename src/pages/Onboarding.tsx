@@ -33,6 +33,12 @@ interface FormData {
   neighborhoods: string[];
   counties: string[];
   specialties: Set<string>;
+  voice: string;
+  valuesText: string;
+  idealClient: string;
+  brokerageStory: string;
+  differentiators: string;
+  propertyTypes: Set<string>;
   primaryColor: string;
   accentColor: string;
 }
