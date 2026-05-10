@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.preview-transactional-email]
 verify_jwt = false
 
+[functions.render-email-preview]
+verify_jwt = true
+
 [functions.handle-email-unsubscribe]
 verify_jwt = false
 
