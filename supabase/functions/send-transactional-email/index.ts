@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
   const templateName: string = body.templateName || body.template_name
   const recipientEmail: string = body.recipientEmail || body.recipient_email
-  const templateData: Record<string, any> =
+  const callerData: Record<string, any> =
     (body.templateData && typeof body.templateData === 'object') ? body.templateData : {}
   const messageId = crypto.randomUUID()
 
@@ -54,6 +54,25 @@ Deno.serve(async (req) => {
   }
   const recipient = template.to || recipientEmail
   if (!recipient) return json({ error: 'recipientEmail is required' }, 400)
+
+  // Pull admin-edited copy (if any) and merge with caller data.
+  // Caller-supplied fields (like name, magicLink) always win over DB defaults.
+  const supabase = createClient(supabaseUrl, serviceKey)
+  let dbCopy: Record<string, any> = {}
+  try {
+    const { data: copyRow } = await supabase
+      .from('email_template_copy')
+      .select('subject, eyebrow, headline, body_paragraphs, cta_label, signature_line_1, signature_line_2')
+      .eq('template_name', templateName)
+      .maybeSingle()
+    if (copyRow) {
+      dbCopy = Object.fromEntries(
+        Object.entries(copyRow).filter(([_, v]) => v !== null && v !== undefined && v !== '')
+      )
+    }
+  } catch (_) { /* table optional — ignore */ }
+
+  const templateData = { ...dbCopy, ...callerData }
 
   // Render template
   let html: string, text: string, subject: string
