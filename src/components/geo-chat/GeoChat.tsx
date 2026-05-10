@@ -354,7 +354,7 @@ export default function GeoChat() {
                 return (
                   <GeoBubble key={i}>
                     <button
-                      onClick={() => navigate("/portal")}
+                      onClick={() => window.location.assign("/portal")}
                       className="bg-ink text-white px-5 py-2.5 text-[13px] font-medium hover:opacity-85 transition-opacity"
                     >
                       Take me to my portal
