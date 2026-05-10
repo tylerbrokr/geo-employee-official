@@ -4,7 +4,7 @@ import { ArrowUp, Pencil, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark, BrandLockup } from "@/components/BrandMark";
 import { SCRIPT, ScriptStep, US_STATES } from "./script";
 
 // ----- Types -----
@@ -38,7 +38,7 @@ const EMPTY: FormState = {
   primaryColor: "#1a1a1a", accentColor: "#c9a96e",
 };
 
-interface TurnGeo { kind: "geo"; id: string; text: string }
+interface TurnGeo { kind: "geo"; id: string; text: string; hint?: boolean }
 interface TurnUser { kind: "user"; stepId: string; value: any; reactionId?: string; edited?: boolean }
 type Turn = TurnGeo | TurnUser;
 
@@ -136,6 +136,9 @@ export default function GeoChat() {
         setTyping(true);
         await delay(550);
       }
+    }
+    if (step.hint) {
+      setTurns((t) => [...t, { kind: "geo", id: `${step.id}-hint-${Date.now()}`, text: step.hint!, hint: true }]);
     }
     setTyping(false);
     if (step.input) {
