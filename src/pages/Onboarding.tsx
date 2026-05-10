@@ -345,6 +345,52 @@ export default function Onboarding() {
                   {step === 3 && (
                     <div className="space-y-5">
                       <div>
+                        <h2 className="text-[22px] font-semibold tracking-tight">Your voice & story.</h2>
+                        <p className="text-sm text-muted-foreground mt-1">This is what makes your blog sound like you. Our AI uses every word of this to write your content.</p>
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">How would you describe your voice?</Label>
+                        <Textarea value={data.voice} onChange={(e) => update({ voice: e.target.value })} placeholder="Warm and direct. No real-estate jargon. I write like I'm texting a friend." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">What do you stand for?</Label>
+                        <Textarea value={data.valuesText} onChange={(e) => update({ valuesText: e.target.value })} placeholder="Honesty over hype. Local knowledge. Treating renters and first-timers with the same care as luxury buyers." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">Who is your ideal client?</Label>
+                        <Textarea value={data.idealClient} onChange={(e) => update({ idealClient: e.target.value })} placeholder="Young families relocating from out of state, first-time buyers in their 30s, anyone who values a guide more than a salesperson." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">Your brokerage / career story</Label>
+                        <Textarea value={data.brokerageStory} onChange={(e) => update({ brokerageStory: e.target.value })} placeholder="Started in 2018 after a career in teaching. Joined Berkshire Hathaway in 2021. Now leading a small team focused on the Dundee neighborhood." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-[13px] font-medium mb-1.5 block">What makes you the best choice?</Label>
+                        <Textarea value={data.differentiators} onChange={(e) => update({ differentiators: e.target.value })} placeholder="Lifelong Omaha resident. 60+ closed transactions per year. Specialize in mid-century homes. Free pre-listing renovation consults." className="rounded-[12px] min-h-[70px] text-sm" />
+                      </div>
+                      <div className="fading-divider my-2" />
+                      <div className="section-label mb-2">PROPERTY TYPES YOU WORK WITH</div>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {PROPERTY_TYPES.map((s) => {
+                          const active = data.propertyTypes.has(s);
+                          return (
+                            <button key={s} type="button" onClick={() => {
+                              const next = new Set(data.propertyTypes);
+                              if (next.has(s)) next.delete(s); else next.add(s);
+                              update({ propertyTypes: next });
+                            }} className="px-3 py-2 rounded-lg text-xs font-medium text-center" style={{
+                              background: active ? "hsl(160 84% 30%)" : "#fff",
+                              color: active ? "#fff" : "hsl(215 16% 47%)",
+                              border: active ? "1px solid hsl(160 84% 30%)" : "1px solid hsl(214 32% 91%)",
+                            }}>{s}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {step === 4 && (
+                    <div className="space-y-5">
+                      <div>
                         <h2 className="text-[22px] font-semibold tracking-tight">Make it yours.</h2>
                         <p className="text-sm text-muted-foreground mt-1">Your colors will be applied to your GEO site.</p>
                       </div>
@@ -373,7 +419,7 @@ export default function Onboarding() {
                       </div>
                     </div>
                   )}
-                  {step === 4 && (
+                  {step === 5 && (
                     <div className="space-y-5">
                       <div>
                         <h2 className="text-[22px] font-semibold tracking-tight">You're ready.</h2>
