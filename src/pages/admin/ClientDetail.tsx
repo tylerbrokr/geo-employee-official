@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, Trash2, Plus, Rocket } from "lucide-react";
+import { Sparkles, Trash2, Plus, Rocket, Mail } from "lucide-react";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -27,6 +27,7 @@ export default function AdminClientDetail() {
   const [generating, setGenerating] = useState(false);
   const [generatingTopics, setGeneratingTopics] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const load = async () => {
     if (!clientId) return;
@@ -141,6 +142,9 @@ export default function AdminClientDetail() {
           <span className="px-3 py-1.5 rounded-md text-xs font-semibold" style={{ background: "hsl(160 84% 30% / 0.1)", color: "hsl(160 84% 30%)" }}>
             {STAGE_LABEL[stage] ?? stage}
           </span>
+          <Button size="sm" variant="outline" onClick={resendIntakeEmail} disabled={resendingEmail} className="gap-2">
+            <Mail className="w-4 h-4" /> {resendingEmail ? "Sending..." : "Resend intake email"}
+          </Button>
           {client.autopilot_enabled ? (
             <Button size="sm" variant="outline" onClick={pauseAutopilot}>Pause autopilot</Button>
           ) : (
