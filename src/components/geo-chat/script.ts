@@ -81,12 +81,14 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["How long have you been in real estate?"],
     input: { type: "single-chip", options: YEARS_OPTIONS },
     fallback: "Solid.",
+    reactAfter: true,
   },
   {
     id: "primaryCity",
     prompt: ["What's your primary city? The one you want to own."],
     input: { type: "text", placeholder: "City" },
     fallback: "Good market.",
+    reactAfter: true,
   },
   {
     id: "state",
