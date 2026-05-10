@@ -160,6 +160,12 @@ export default function Onboarding() {
         phone: c.phone ?? "",
         primaryColor: c.primary_color ?? "#059669",
         accentColor: c.accent_color ?? "#0F172A",
+        voice: (c as any).voice ?? "",
+        valuesText: (c as any).values_text ?? "",
+        idealClient: (c as any).ideal_client ?? "",
+        brokerageStory: (c as any).brokerage_story ?? "",
+        differentiators: (c as any).differentiators ?? "",
+        propertyTypes: new Set<string>((c as any).property_types ?? []),
         primaryCity: m?.primary_city ?? "",
         state: m?.primary_state ?? "",
         cities: m?.cities ?? [],
@@ -167,7 +173,7 @@ export default function Onboarding() {
         counties: m?.counties ?? [],
         specialties: new Set((sp ?? []).map((s: any) => s.specialty)),
       }));
-      if (intake?.current_step) setStep(Math.min(4, Math.max(0, intake.current_step - 1)));
+      if (intake?.current_step) setStep(Math.min(5, Math.max(0, intake.current_step - 1)));
       setLoadingInitial(false);
     })();
   }, [user]);
