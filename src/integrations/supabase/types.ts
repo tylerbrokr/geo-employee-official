@@ -53,6 +53,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "change_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
+          },
         ]
       }
       client_markets: {
@@ -93,6 +100,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_markets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
           },
         ]
       }
@@ -173,6 +187,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_specialties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
           },
         ]
       }
@@ -416,6 +437,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "intake_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
+          },
         ]
       }
       posts: {
@@ -477,6 +505,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "posts_topic_id_fkey"
@@ -562,6 +597,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "site_cache_purges_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
+          },
         ]
       }
       user_roles: {
@@ -587,7 +629,75 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_client_market: {
+        Row: {
+          cities: string[] | null
+          client_id: string | null
+          counties: string[] | null
+          neighborhoods: string[] | null
+          primary_city: string | null
+          primary_state: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_markets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_markets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "public_client_profile"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
+      public_client_profile: {
+        Row: {
+          accent_color: string | null
+          brokerage: string | null
+          brokerage_story: string | null
+          business_name: string | null
+          client_id: string | null
+          differentiators: string | null
+          headshot_url: string | null
+          ideal_client: string | null
+          logo_url: string | null
+          primary_color: string | null
+          property_types: string[] | null
+          values_text: string | null
+          voice: string | null
+          years_experience: string | null
+        }
+        Relationships: []
+      }
+      public_client_site: {
+        Row: {
+          client_id: string | null
+          custom_domain: string | null
+          provisioned_at: string | null
+          ssl_status: string | null
+          subdomain: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          custom_domain?: string | null
+          provisioned_at?: string | null
+          ssl_status?: string | null
+          subdomain?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          custom_domain?: string | null
+          provisioned_at?: string | null
+          ssl_status?: string | null
+          subdomain?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
