@@ -1,153 +1,69 @@
 ## Goal
 
-Rebrand the entire GEO platform to match The Inner Cirql brand bible (white canvas, ink text, gold accent, Cormorant + Helvetica Neue, zero border-radius, hairline borders). Then ship a fully on-brand intake email sent from `geo@geoemployee.com`.
+Move the intake-invite email copy out of the React Email file and into a database-backed editor at `/admin/emails`, so you can edit headline, body, CTA label, and signature without code changes.
 
-## Why this is a big change
+## What changes
 
-The current platform is built on the opposite design system: emerald primary, deep navy sidebar, Inter everywhere, 8px rounded corners, soft shadows, gradient borders. Every visual token has to flip. This is a 1–2 hour rebrand, not a tweak.
+### 1. New database table: `email_template_copy`
 
----
+Stores editable copy for each transactional template. One row per template name.
 
-## Phase 1 — Platform rebrand (ship first, no email work yet)
+| Column | Type | Notes |
+|---|---|---|
+| `template_name` | text, PK | e.g. `client-intake-invite` |
+| `subject` | text | Email subject line |
+| `eyebrow` | text | Small label above headline (e.g. `THE INNER CIRQL · GEO`) |
+| `headline` | text | Big Cormorant headline. Supports `{name}` token. |
+| `body_paragraphs` | text[] | Array of paragraphs (each a body block) |
+| `cta_label` | text | Button text (e.g. `Open the intake`) |
+| `signature_line_1` | text | e.g. `The GEO team` |
+| `signature_line_2` | text | e.g. `The Inner Cirql` |
+| `updated_at` | timestamptz | |
+| `updated_by` | uuid | references auth user |
 
-### 1A. Design tokens — rewrite `src/index.css`
+Seed it with the current intake-invite copy so nothing changes for clients.
 
-Swap the entire token set:
+**RLS:** admins can SELECT and UPDATE. No one else can read or write.
 
-- `--background`: `#ffffff` (was cool gray)
-- `--foreground` / `--ink`: `#1a1a1a`
-- `--card`: `#ffffff` (no gradient, no blur)
-- `--accent` / `--gold`: `#c9a96e`
-- `--off-white`: `#faf8f4` (callout blocks only)
-- `--ink-08`: `rgba(26,26,26,0.08)` (hairline borders)
-- `--ink-28`: `rgba(26,26,26,0.28)` (ghost button border)
-- `--ink-35`: `rgba(26,26,26,0.35)` (labels)
-- `--deep-ink`: `#0c0c0c` (rare full-bleed only)
-- `--radius`: `0` (zero, everywhere)
-- Sidebar: `#ffffff` with ink text (replaces deep navy)
-- `--ring`: ink, not emerald
-- `--destructive`: keep functional red
+### 2. Edge function reads from DB
 
-Remove all emerald references. Remove gradient borders. Remove `findr-card` glassmorphism. Replace `emerald-pulse` keyframe with a `gold-pulse` (5px gold dot, 1.4s pulse, used once per page).
+Update `client-intake-invite.tsx` to accept all copy as props. Update `send-transactional-email` (or a small shim) to fetch the row from `email_template_copy` before rendering, fill in `{name}` token, and pass everything as props. If the row is missing, fall back to baked-in defaults so sends never break.
 
-### 1B. Typography — load brand fonts
+### 3. New admin page: `/admin/emails`
 
-- Replace Inter import with: **Cormorant Garamond** (300, 400, 400-italic) + **Helvetica Neue** stack (`-apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif`).
-- Body default: Helvetica Neue 400, 15px, line-height 1.75.
-- New utility classes: `.font-display` (Cormorant), `.font-ui` (Helvetica Neue).
-- Update `tailwind.config.ts` to add `display` and `ui` font families.
+Sidebar entry under Admin nav: **Emails**. Page shows:
 
-### 1C. Component overhaul
+- **Left column** — form fields for the intake-invite template:
+  - Subject (input)
+  - Eyebrow (input)
+  - Headline (input, with `{name}` token helper text)
+  - Body paragraphs (list of textareas, add/remove rows)
+  - CTA label (input)
+  - Signature line 1 + line 2 (inputs)
+  - Save button (saves to `email_template_copy`)
+- **Right column** — live preview rendered by calling `preview-transactional-email` (already deployed) with the current form state. Refreshes on save or on a "Preview" button click.
+- Header strip: template name, last updated timestamp + admin name.
+- Send-test-email button: pops a small input for an address, fires `send-transactional-email` with `templateName: 'client-intake-invite'` and `templateData: { name: 'Test', magicLink: 'https://www.geoemployee.com/onboarding?token=preview' }`.
 
-- **Buttons** (`src/components/ui/button.tsx`):
-  - `default`: ink bg (`#1a1a1a`), parchment/off-white text, Helvetica 500 13px, padding 16px 36px, **square corners**.
-  - `outline` (ghost): transparent bg, 1px `--ink-28` border, ink text.
-  - New `gold` variant: gold bg, ink text — for form submits / high-emphasis CTAs in modals.
-  - Hover: opacity-only shift (no color flip, no scale, no shadow).
-- **Cards** (`src/components/ui/card.tsx`): white bg, hairline `--ink-08` border, no shadow, square corners. Delete `.findr-card` and `.findr-card-elevated` from `index.css`.
-- **Inputs / Select / Textarea**: square corners, hairline border, ink text on white.
-- **Badges**: square, ink-on-white or gold-on-ink.
-- **Dialog / Sheet**: square, hairline border, white bg.
-- Global: search-and-replace `rounded-*` Tailwind classes → remove or set to `rounded-none` where appropriate.
+Branded per Inner Cirql: white canvas, hairline ink-08 borders, gold save button, Cormorant page title.
 
-### 1D. Layout & navigation
+### 4. Sidebar nav
 
-- **Sidebar** (`src/components/AppSidebar.tsx` + `AdminLayout.tsx`):
-  - Background: white (was deep navy).
-  - 1px `--ink-08` right border to separate from content.
-  - Active nav item: gold left-rail (2px) + ink text bold.
-  - Inactive: `--ink-35` Helvetica 500 10px uppercase letter-spaced 2.5px (label style).
-  - Logo lockup at top: ten gold dots mark + "GEO" wordmark in Cormorant 400.
-- **Top bars / page titles**: `.page-title` becomes Cormorant Garamond 400, 26–32px, ink color, letter-spacing normal (no -0.02em).
-- **Stat numbers**: Cormorant 300, 48px, ink.
-- **Section labels**: Helvetica 500 10px uppercase, letter-spacing 2.5px, `--ink-35`.
+Add **Emails** entry to `AppSidebar.tsx` under the admin section, between Change Requests and any settings entry. Icon: `Mail`.
 
-### 1E. Iconography & micro-details
+## Files touched
 
-- List bullets → gold en-dashes (–), per brand bible.
-- Live-state dot → gold (`#c9a96e`), 5px, 1.4s pulse, used once per page.
-- No emojis anywhere (audit and remove if any exist).
-- Em dashes → replace with periods, commas, parens, or en-dashes.
+- New migration: create `email_template_copy` table, RLS, seed row
+- New: `src/pages/admin/Emails.tsx`
+- Edited: `src/App.tsx` (add `/admin/emails` route)
+- Edited: `src/components/AppSidebar.tsx` (nav entry)
+- Edited: `supabase/functions/send-transactional-email/index.ts` (fetch copy from DB before render)
+- Edited: `supabase/functions/_shared/transactional-email-templates/client-intake-invite.tsx` (accept full copy as props, keep current values as fallbacks)
+- Redeploy: `send-transactional-email`
 
-### 1F. Forbidden audit
+## Out of scope (call out for later)
 
-Search and remove from the codebase:
-- All emerald/`160 84%` color values.
-- All `rounded-lg`, `rounded-xl`, `rounded-md` (replace with square or `rounded-none`).
-- All `bg-gradient-*` and `linear-gradient(` decorative usage.
-- Words from the never-do list in copy: "free" (use "included"), "unlock", "supercharge", "game-changer", etc.
-
-### 1G. Update memory
-
-Rewrite `mem://index.md` Core + replace design memory files to reflect the Inner Cirql brand. Delete the old emerald/navy memory entries.
-
----
-
-## Phase 2 — Email infrastructure & branded intake email
-
-(Only start after Phase 1 ships and you've eyeballed the rebranded UI.)
-
-### 2A. Provision email domain
-Set up `geoemployee.com` in Lovable Email. You'll add 2 NS records at your registrar for `notify.geoemployee.com`. Display-from-root enabled so recipients see `geo@geoemployee.com`, not the `notify.` subdomain.
-
-### 2B. Provision email infrastructure
-Stand up the email queue, suppression, unsubscribe handler, and the generic `send-transactional-email` function.
-
-### 2C. Build the intake invite template — `client-intake-invite`
-
-On-brand, plain, operator voice. Plaintext-feeling but properly styled.
-
-```text
-[ten gold dots mark]    GEO
-
-Hello {first_name},
-
-Your GEO workspace is live. The intake is the
-fastest way to get your six posts written
-and shipped this week.
-
-It takes about ten minutes.
-
-[ Open intake → ]   ← gold bg, ink text, square
-
-If the button doesn't work:
-{magic_link}
-
-— The Inner Cirql
-
-A sub-brand of BlakeSuddath.com
-```
-
-- Body bg: `#ffffff` (mandatory).
-- Outer container: 560px, no border-radius.
-- Headline: Cormorant Garamond 300, 28px, ink. (Use Google Fonts CSS in email head with web-safe Georgia fallback for clients that block webfonts.)
-- Body: Helvetica Neue / Arial fallback, 15px, line-height 1.75, ink.
-- CTA button: gold (`#c9a96e`) bg, ink text, Helvetica 500 13px, padding 16px 36px, square.
-- Footer: gold ten-dot mark + "The Inner Cirql · A sub-brand of BlakeSuddath.com" in Helvetica 10px uppercase letter-spaced 2.5px, `--ink-35`.
-
-Subject: `Your GEO workspace is live. Open the intake.`
-From: `GEO <geo@geoemployee.com>`
-Reply-to: no-reply (replies discouraged).
-
-### 2D. Wire into `create-client`
-After generating the magic link, call `send-transactional-email` with `templateName: 'client-intake-invite'`, recipient email, and `templateData: { first_name, magic_link }`. Return `{ magic_link, email_sent: true }`.
-
-### 2E. Update `NewClientModal`
-Success state shows "Intake email sent to {email}" with the gold CTA style. Magic link displayed below as a copyable fallback.
-
-### 2F. Resend control
-Add "Resend intake email" button on `ClientDetail` (visible while `pipeline_stage` is `draft` or `intake_sent`). Generates a fresh magic link and re-sends the same template.
-
----
-
-## Out of scope (this round)
-
-- Auth email customization (Lovable defaults are fine — we'll brand them later).
-- Reminder emails, change-request notifications, post-published notifications.
-- Logo SVG asset — for now, the ten gold dots will be CSS/HTML circles. A real SVG mark can come later.
-- Cormorant rendering inside email is best-effort (Gmail/Apple Mail render webfonts; Outlook will fall back to Georgia). Acceptable per brand reality.
-
-## What I need from you
-
-1. Approve this plan to start Phase 1 (the rebrand). I'll batch the token rewrite, font swap, button/card overhaul, sidebar flip, and copy audit in one pass.
-2. After Phase 1 lands, I'll surface the email setup dialog so you can paste the NS records at your registrar — then I'll ship Phase 2.
+- Editing the visual layout (gold dots, button color, fonts) — those stay in code as brand
+- Other templates (post-published, change-request ack) — easy to add later by inserting a new row + new template file
+- Version history / drafts of copy — single live row only for now
+- A/B testing
