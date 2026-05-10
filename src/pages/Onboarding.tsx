@@ -299,8 +299,8 @@ export default function Onboarding() {
                   {step === 0 && (
                     <div className="space-y-5">
                       <div>
-                        <h2 className="text-[22px] font-semibold tracking-tight">Let's start with you.</h2>
-                        <p className="text-sm text-muted-foreground mt-1">This information will appear on your GEO site.</p>
+                        <h2 className="text-[22px] font-semibold tracking-tight">First, tell me about you.</h2>
+                        <p className="text-sm text-muted-foreground mt-1">This is what shows up on your GEO site.</p>
                       </div>
                       <div className="space-y-4">
                         <div><Label className="text-[13px] font-medium mb-1.5 block">Full Name</Label>
@@ -320,8 +320,8 @@ export default function Onboarding() {
                   {step === 1 && (
                     <div className="space-y-5">
                       <div>
-                        <h2 className="text-[22px] font-semibold tracking-tight">Where do you work?</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Add every area you serve. The more you add, the more content we generate.</p>
+                        <h2 className="text-[22px] font-semibold tracking-tight">Where are you working?</h2>
+                        <p className="text-sm text-muted-foreground mt-1">Give me every area you cover. The more I have, the more content I can generate.</p>
                       </div>
                       <div><Label className="text-[13px] font-medium mb-1.5 block">Primary City</Label>
                         <Input value={data.primaryCity} onChange={(e) => update({ primaryCity: e.target.value })} className="h-10 rounded-[12px]" /></div>
@@ -345,7 +345,7 @@ export default function Onboarding() {
                     <div className="space-y-5">
                       <div>
                         <h2 className="text-[22px] font-semibold tracking-tight">What do you specialize in?</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Select everything that applies. These become the angles for your content.</p>
+                        <p className="text-sm text-muted-foreground mt-1">Pick everything that fits. These become the angles I write from.</p>
                       </div>
                       <div className="grid grid-cols-3 gap-2.5">
                         {SPECIALTIES.map((s) => {
@@ -368,8 +368,8 @@ export default function Onboarding() {
                   {step === 3 && (
                     <div className="space-y-5">
                       <div>
-                        <h2 className="text-[22px] font-semibold tracking-tight">Your voice & story.</h2>
-                        <p className="text-sm text-muted-foreground mt-1">This is what makes your blog sound like you. Our AI uses every word of this to write your content.</p>
+                        <h2 className="text-[22px] font-semibold tracking-tight">Now help me sound like you.</h2>
+                        <p className="text-sm text-muted-foreground mt-1">I'll use every word here when I write your posts.</p>
                       </div>
                       <div>
                         <Label className="text-[13px] font-medium mb-1.5 block">How would you describe your voice?</Label>
@@ -414,8 +414,8 @@ export default function Onboarding() {
                   {step === 4 && (
                     <div className="space-y-5">
                       <div>
-                        <h2 className="text-[22px] font-semibold tracking-tight">Make it yours.</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Your colors will be applied to your GEO site.</p>
+                        <h2 className="text-[22px] font-semibold tracking-tight">Last thing. What colors should I use?</h2>
+                        <p className="text-sm text-muted-foreground mt-1">These get applied across your GEO site.</p>
                       </div>
                       <div className="flex gap-8">
                         <div className="flex-1">
@@ -445,8 +445,8 @@ export default function Onboarding() {
                   {step === 5 && (
                     <div className="space-y-5">
                       <div>
-                        <h2 className="text-[22px] font-semibold tracking-tight">You're ready.</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Our team will build your site within 7 days.</p>
+                        <h2 className="text-[22px] font-semibold tracking-tight">That's everything I need.</h2>
+                        <p className="text-sm text-muted-foreground mt-1">Hit submit and I'll hand this off to the team. Your site will be built within 7 days.</p>
                       </div>
                       <div className="findr-card !p-5 space-y-4">
                         <div>
