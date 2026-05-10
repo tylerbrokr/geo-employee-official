@@ -122,6 +122,7 @@ export const SCRIPT: ScriptStep[] = [
     prompt: ["What do you specialize in? Pick everything that fits."],
     input: { type: "multi-chip", options: SPECIALTIES },
     fallback: "Good angles for content.",
+    reactAfter: true,
   },
   {
     id: "voice",
