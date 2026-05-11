@@ -83,10 +83,102 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("full_name, email").eq("id", client.owner_user_id).maybeSingle();
     const agentName = profile?.full_name?.trim() || profile?.email?.split("@")[0] || "the agent";
 
+    // ---- Canonicalize geographic names (correct typos) -------------------
+    // The intake form lets clients type "hennipan" instead of "Hennepin".
+    // Without this step the chip, slug, and area page all carry the typo
+    // even though Gemini silently writes the correct name into the prose.
+    // We ask the AI to canonicalize each entry, persist the corrected value
+    // back to client_markets, and stash the original in raw_input for audit.
+    let primaryCity: string | null = market?.primary_city ?? null;
+    let primaryState: string | null = market?.primary_state ?? null;
+    let citiesArr: string[] = (market?.cities ?? []) as string[];
+    let neighborhoodsArr: string[] = (market?.neighborhoods ?? []) as string[];
+    let countiesArr: string[] = (market?.counties ?? []) as string[];
+
+    if (market) {
+      const rawInput = (market.raw_input ?? {}) as Record<string, any>;
+      const prevMap: Record<string, string> = rawInput.canonical_map ?? {};
+      type Entry = { kind: "primary_city" | "city" | "neighborhood" | "county"; original: string };
+      const entries: Entry[] = [];
+      if (primaryCity) entries.push({ kind: "primary_city", original: primaryCity });
+      for (const c of citiesArr) if (c) entries.push({ kind: "city", original: c });
+      for (const n of neighborhoodsArr) if (n) entries.push({ kind: "neighborhood", original: n });
+      for (const co of countiesArr) if (co) entries.push({ kind: "county", original: co });
+
+      const needsNorm = entries.some((e) => !prevMap[`${e.kind}|${e.original}`]);
+      if (needsNorm && entries.length) {
+        const sys = `You are a US geography normalizer for real estate pages. For each entry, return the canonical proper-noun spelling (fixing typos like "hennipan" -> "Hennepin"). Counties: return just the county name without the word "County". Keep the entry's kind. Return STRICT JSON: { "results": [ { "kind": "<kind>", "input": "<original>", "canonical": "<corrected proper noun>" }, ... ] } in the same order, no commentary.`;
+        const usr = `State context: ${primaryState ?? "unknown"}\n\nEntries:\n${entries.map((e, i) => `${i + 1}. [${e.kind}] "${e.original}"`).join("\n")}`;
+        try {
+          const normResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${lovableKey}` },
+            body: JSON.stringify({
+              model: MODEL,
+              messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+              response_format: { type: "json_object" },
+            }),
+          });
+          if (normResp.ok) {
+            const nb = await normResp.json();
+            const parsed = JSON.parse(nb.choices?.[0]?.message?.content ?? "{}");
+            const results: Array<{ kind: string; input: string; canonical: string }> = Array.isArray(parsed.results) ? parsed.results : [];
+            const newMap: Record<string, string> = { ...prevMap };
+            for (const r of results) {
+              if (r && typeof r.canonical === "string" && r.canonical.trim()) {
+                newMap[`${r.kind}|${r.input}`] = r.canonical.trim();
+              }
+            }
+            const canon = (kind: string, val: string) => newMap[`${kind}|${val}`] ?? val;
+            const newPrimary = primaryCity ? canon("primary_city", primaryCity) : null;
+            const newCities = citiesArr.map((c) => canon("city", c)).filter(Boolean);
+            const newNeighborhoods = neighborhoodsArr.map((c) => canon("neighborhood", c)).filter(Boolean);
+            const newCounties = countiesArr.map((c) => canon("county", c)).filter(Boolean);
+
+            const changed =
+              newPrimary !== primaryCity ||
+              JSON.stringify(newCities) !== JSON.stringify(citiesArr) ||
+              JSON.stringify(newNeighborhoods) !== JSON.stringify(neighborhoodsArr) ||
+              JSON.stringify(newCounties) !== JSON.stringify(countiesArr);
+
+            const mergedRaw = {
+              ...rawInput,
+              canonical_map: newMap,
+              normalized_at: new Date().toISOString(),
+              original: rawInput.original ?? {
+                primary_city: market.primary_city,
+                cities: market.cities,
+                neighborhoods: market.neighborhoods,
+                counties: market.counties,
+                captured_at: new Date().toISOString(),
+              },
+            };
+
+            await admin.from("client_markets").update({
+              primary_city: newPrimary,
+              cities: newCities,
+              neighborhoods: newNeighborhoods,
+              counties: newCounties,
+              raw_input: mergedRaw,
+            }).eq("client_id", clientId);
+
+            primaryCity = newPrimary;
+            citiesArr = newCities;
+            neighborhoodsArr = newNeighborhoods;
+            countiesArr = newCounties;
+            if (changed) {
+              // Trigger already marks areas stale on update; we'll prune
+              // orphaned slug rows below.
+            }
+          }
+        } catch (_e) {
+          // Normalization is best-effort; fall through with original values.
+        }
+      }
+    }
+
     // Build the canonical list of areas from client_markets
     const desired: { name: string; state: string | null; area_type: "city" | "neighborhood" | "county"; parent_name: string | null }[] = [];
-    const primaryCity = market?.primary_city ?? null;
-    const primaryState = market?.primary_state ?? null;
 
     if (primaryCity) desired.push({ name: primaryCity, state: primaryState, area_type: "city", parent_name: null });
     for (const c of (market?.cities ?? []) as string[]) {
