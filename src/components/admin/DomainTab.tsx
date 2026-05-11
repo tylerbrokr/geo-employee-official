@@ -93,10 +93,37 @@ export function DomainTab({ clientId }: Props) {
   const customLive = !!(site.custom_domain && site.dns_verified);
   const dns = site.dns_records as any;
 
+  const renameSubdomain = async () => {
+    const current = site?.subdomain ?? "";
+    const next = window.prompt(
+      "New subdomain (lowercase, a-z 0-9 hyphens, 2-40 chars).\n\nThe old URL will stop working immediately.",
+      current,
+    );
+    if (!next || next.trim() === current) return;
+    setBusy("rename");
+    const { data, error } = await supabase.functions.invoke("rename-subdomain", {
+      body: { client_id: clientId, new_subdomain: next.trim() },
+    });
+    setBusy(null);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error ?? error?.message ?? "Rename failed");
+      return;
+    }
+    toast.success(`Renamed to ${(data as any).subdomain}`);
+    load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="findr-card">
-        <p className="section-label mb-3">SUBDOMAIN</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="section-label">SUBDOMAIN</p>
+          {site.subdomain && (
+            <button onClick={renameSubdomain} disabled={busy === "rename"} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors">
+              <Pencil className="w-3 h-3" /> {busy === "rename" ? "Renaming..." : "Rename"}
+            </button>
+          )}
+        </div>
         {subUrl ? (
           <div className="flex items-center justify-between">
             <a href={subUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">{subUrl}</a>
