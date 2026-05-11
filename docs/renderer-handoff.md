@@ -61,13 +61,55 @@ Then use `var(--brand-primary)` everywhere a CTA, button, link, eyebrow underlin
 |--------------------|-----------------------------------------------------------------------------------------------|
 | `/`                | Agent identity + recent posts + footer NAP block                                              |
 | `/about`           | Bio, credentials, areas served, NAP block (plain text — no contact form)                     |
+| `/blog`            | **NEW** — paginated index of all published posts                                              |
 | `/blog/[slug]`     | Existing — add JSON-LD, OG tags, breadcrumbs                                                  |
 | `/areas/[slug]`    | **NEW** — per-city/neighborhood/county landing page                                           |
 | `/sitemap.xml`     | **NEW** — dynamic                                                                             |
 | `/robots.txt`      | **REPLACE** — allow AI crawlers, point to sitemap                                             |
 | `/llms.txt`        | **NEW** — markdown summary for LLM crawlers                                                   |
 
+Every page renders the **persistent header (§3a)** at the top and **persistent footer (§3b)** at the bottom. Internal linking is one of the strongest GEO signals; without persistent nav, crawlers can only discover pages via the sitemap.
+
 No `/contact` page. No contact forms. These sites exist to be cited by LLMs and indexed by search engines, not to capture leads.
+
+---
+
+## 3a. Persistent header
+
+Sticky, hairline border on the bottom (`border-b border-[color:var(--brand-primary)]/10`), white background, ink text. No shadows, no rounded corners.
+
+Layout:
+
+```text
+[Agent Name]                        About   Areas   Blog   [Phone]
+[brokerage in muted text]
+```
+
+- Left: `site.agent_display_name` (link to `/`), brokerage one-liner below in `text-xs text-muted-foreground`
+- Right: `<nav>` with links to `/about`, `/areas` (anchor on home or future index), `/blog`, then the phone number as a `tel:` link styled with `var(--brand-accent)` color
+- **Phone slot is conditional** — render the `tel:` link only when `profile.phone_e164` is non-null. Never render an empty placeholder. Same rule applies to every NAP line in the footer.
+- Mobile: collapse nav into a simple stacked menu under a hairline divider; no hamburger animation, no overlay
+
+## 3b. Persistent footer
+
+Three columns on desktop (stack on mobile), separated by `var(--brand-primary)/10` hairline rules. White background, no shadows.
+
+Column 1 — **Identity + NAP** (see §6 for the address element):
+- Agent name (semibold)
+- Brokerage
+- Address lines (omit any line where the underlying field is null)
+- Phone (omit when `phone_e164` is null)
+
+Column 2 — **Areas served**:
+- `<h3>` "Areas served" (small, uppercase, tracking-wider, muted)
+- Up to 12 most-relevant areas as `<a href="/areas/{slug}">{area.name}</a>`, one per line. If more than 12 areas exist, link "View all" to `/` or wherever the areas index lives.
+
+Column 3 — **Recent writing**:
+- `<h3>` "Recent writing"
+- 5 most-recent published posts, each linked to `/blog/{slug}`
+- Below: "All posts →" link to `/blog`
+
+Bottom strip (full width, hairline above): `© {year} {agent_display_name}` left, "Built with care" or empty right. No social icons unless data is added later.
 
 ---
 
