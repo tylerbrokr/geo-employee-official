@@ -200,6 +200,7 @@ export default function AdminClientDetail() {
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
           <TabsTrigger value="domain">Domain</TabsTrigger>
           <TabsTrigger value="copy">Site copy</TabsTrigger>
+          <TabsTrigger value="areas">Areas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="domain" className="mt-6">
@@ -208,6 +209,10 @@ export default function AdminClientDetail() {
 
         <TabsContent value="copy" className="mt-6">
           {clientId && <SiteCopyTab clientId={clientId} />}
+        </TabsContent>
+
+        <TabsContent value="areas" className="mt-6">
+          {clientId && <AreasTab clientId={clientId} />}
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
