@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Sparkles, Trash2, Plus, Rocket, Mail } from "lucide-react";
 import { DomainTab } from "@/components/admin/DomainTab";
 import { SiteCopyTab } from "@/components/admin/SiteCopyTab";
+import { AreasTab } from "@/components/admin/AreasTab";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
