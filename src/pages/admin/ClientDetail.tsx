@@ -83,8 +83,11 @@ export default function AdminClientDetail() {
 
   const generateTopics = async () => {
     if (!clientId) return;
+    if (topics.some((t) => t.status === "queued")) {
+      if (!confirm("This will delete all queued topics and rebuild the list from this client's areas. Used and skipped topics are kept. Continue?")) return;
+    }
     setGeneratingTopics(true);
-    const { data, error } = await supabase.functions.invoke("generate-master-topics", { body: { client_id: clientId, count: 30 } });
+    const { data, error } = await supabase.functions.invoke("generate-master-topics", { body: { client_id: clientId } });
     setGeneratingTopics(false);
     if (error || (data as any)?.error) {
       toast.error((data as any)?.error ?? error?.message ?? "Failed");
