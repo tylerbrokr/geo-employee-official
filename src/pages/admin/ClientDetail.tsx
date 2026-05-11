@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, Trash2, Plus, Rocket, Mail } from "lucide-react";
+import { DomainTab } from "@/components/admin/DomainTab";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -195,7 +196,12 @@ export default function AdminClientDetail() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="topics">Topics ({topics.length})</TabsTrigger>
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+          <TabsTrigger value="domain">Domain</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="domain" className="mt-6">
+          {clientId && <DomainTab clientId={clientId} />}
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
           <div className="grid grid-cols-2 gap-4">
