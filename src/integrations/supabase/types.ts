@@ -730,6 +730,7 @@ export type Database = {
       }
       public_client_site: {
         Row: {
+          agent_display_name: string | null
           client_id: string | null
           custom_domain: string | null
           provisioned_at: string | null
@@ -737,6 +738,7 @@ export type Database = {
           subdomain: string | null
         }
         Insert: {
+          agent_display_name?: string | null
           client_id?: string | null
           custom_domain?: string | null
           provisioned_at?: string | null
@@ -744,11 +746,25 @@ export type Database = {
           subdomain?: string | null
         }
         Update: {
+          agent_display_name?: string | null
           client_id?: string | null
           custom_domain?: string | null
           provisioned_at?: string | null
           ssl_status?: string | null
           subdomain?: string | null
+        }
+        Relationships: []
+      }
+      public_site_copy: {
+        Row: {
+          area_blurb: string | null
+          bio_long: string | null
+          bio_short: string | null
+          client_id: string | null
+          ideal_client_blurb: string | null
+          meta_description: string | null
+          meta_title: string | null
+          tagline: string | null
         }
         Relationships: []
       }
