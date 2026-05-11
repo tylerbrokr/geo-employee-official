@@ -451,3 +451,14 @@ If the renderer adds any new paths (e.g. `/about`, `/areas/...`, `/sitemap.xml`,
 - [ ] `/robots.txt` includes GPTBot, ClaudeBot, PerplexityBot, Google-Extended
 - [ ] `/llms.txt` renders agent summary + areas + posts
 - [ ] OG image preview works in Slack/Twitter card validator
+- [ ] Persistent header renders on every page; phone slot is hidden when `phone_e164` is null
+- [ ] Persistent footer renders on every page with NAP, areas list, recent posts; missing fields collapse silently
+- [ ] `/blog` returns a paginated list (not 404) and is in the sitemap
+
+---
+
+## 14. Canonical area names (data-side note, not renderer work)
+
+The dashboard now canonicalizes geographic names via the `generate-area-pages` edge function. When a client types `"hennipan, MN"` during intake, the AI rewrites the value in `client_markets.cities` (etc.) to `"Hennepin"` and stashes the original in `client_markets.raw_input.original` for audit. The `client_areas.slug` is regenerated from the corrected name; the previous orphaned row is deleted and its public path is queued for cache purge.
+
+**Renderer impact:** none — `public_client_areas` and `public_client_market` will simply start returning correctly spelled names. No code changes required, but be aware that an existing area slug like `/areas/hennipan-county-mn` may disappear and be replaced by `/areas/hennepin-mn` on the next sync. The cache purge queue already handles both old and new paths.
