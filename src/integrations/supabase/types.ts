@@ -142,6 +142,7 @@ export type Database = {
           neighborhoods: string[]
           primary_city: string | null
           primary_state: string | null
+          raw_input: Json
           updated_at: string
         }
         Insert: {
@@ -152,6 +153,7 @@ export type Database = {
           neighborhoods?: string[]
           primary_city?: string | null
           primary_state?: string | null
+          raw_input?: Json
           updated_at?: string
         }
         Update: {
@@ -162,6 +164,7 @@ export type Database = {
           neighborhoods?: string[]
           primary_city?: string | null
           primary_state?: string | null
+          raw_input?: Json
           updated_at?: string
         }
         Relationships: [

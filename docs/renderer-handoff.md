@@ -61,13 +61,55 @@ Then use `var(--brand-primary)` everywhere a CTA, button, link, eyebrow underlin
 |--------------------|-----------------------------------------------------------------------------------------------|
 | `/`                | Agent identity + recent posts + footer NAP block                                              |
 | `/about`           | Bio, credentials, areas served, NAP block (plain text — no contact form)                     |
+| `/blog`            | **NEW** — paginated index of all published posts                                              |
 | `/blog/[slug]`     | Existing — add JSON-LD, OG tags, breadcrumbs                                                  |
 | `/areas/[slug]`    | **NEW** — per-city/neighborhood/county landing page                                           |
 | `/sitemap.xml`     | **NEW** — dynamic                                                                             |
 | `/robots.txt`      | **REPLACE** — allow AI crawlers, point to sitemap                                             |
 | `/llms.txt`        | **NEW** — markdown summary for LLM crawlers                                                   |
 
+Every page renders the **persistent header (§3a)** at the top and **persistent footer (§3b)** at the bottom. Internal linking is one of the strongest GEO signals; without persistent nav, crawlers can only discover pages via the sitemap.
+
 No `/contact` page. No contact forms. These sites exist to be cited by LLMs and indexed by search engines, not to capture leads.
+
+---
+
+## 3a. Persistent header
+
+Sticky, hairline border on the bottom (`border-b border-[color:var(--brand-primary)]/10`), white background, ink text. No shadows, no rounded corners.
+
+Layout:
+
+```text
+[Agent Name]                        About   Areas   Blog   [Phone]
+[brokerage in muted text]
+```
+
+- Left: `site.agent_display_name` (link to `/`), brokerage one-liner below in `text-xs text-muted-foreground`
+- Right: `<nav>` with links to `/about`, `/areas` (anchor on home or future index), `/blog`, then the phone number as a `tel:` link styled with `var(--brand-accent)` color
+- **Phone slot is conditional** — render the `tel:` link only when `profile.phone_e164` is non-null. Never render an empty placeholder. Same rule applies to every NAP line in the footer.
+- Mobile: collapse nav into a simple stacked menu under a hairline divider; no hamburger animation, no overlay
+
+## 3b. Persistent footer
+
+Three columns on desktop (stack on mobile), separated by `var(--brand-primary)/10` hairline rules. White background, no shadows.
+
+Column 1 — **Identity + NAP** (see §6 for the address element):
+- Agent name (semibold)
+- Brokerage
+- Address lines (omit any line where the underlying field is null)
+- Phone (omit when `phone_e164` is null)
+
+Column 2 — **Areas served**:
+- `<h3>` "Areas served" (small, uppercase, tracking-wider, muted)
+- Up to 12 most-relevant areas as `<a href="/areas/{slug}">{area.name}</a>`, one per line. If more than 12 areas exist, link "View all" to `/` or wherever the areas index lives.
+
+Column 3 — **Recent writing**:
+- `<h3>` "Recent writing"
+- 5 most-recent published posts, each linked to `/blog/{slug}`
+- Below: "All posts →" link to `/blog`
+
+Bottom strip (full width, hairline above): `© {year} {agent_display_name}` left, "Built with care" or empty right. No social icons unless data is added later.
 
 ---
 
@@ -130,6 +172,43 @@ JSON-LD on this page:
 
 ---
 
+## 4a. `/blog` index route (NEW — currently 404s, must be fixed)
+
+The sitemap will list `/blog`, and crawlers/LLMs will hit it. Returning 404 wastes a top-level URL.
+
+Query:
+
+```ts
+const PAGE_SIZE = 20;
+const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+const from = (page - 1) * PAGE_SIZE;
+const to = from + PAGE_SIZE - 1;
+
+const { data: posts, count } = await supabase
+  .from("posts")
+  .select("slug, title, excerpt, cover_image_url, published_at", { count: "exact" })
+  .eq("client_id", clientId)
+  .eq("status", "published")
+  .order("published_at", { ascending: false })
+  .range(from, to);
+```
+
+Render:
+
+- **H1**: "Writing" (or "Blog" — keep it short)
+- One card per post: title (link to `/blog/{slug}`), excerpt, formatted date, optional cover image
+- Pagination: prev/next links using `?page=N`. Hide prev on page 1, next when `from + posts.length >= count`.
+- Empty state: "No posts yet." plain text. No CTA, no faux-content.
+
+Meta:
+- Title: `Writing | ${agent_display_name}`
+- Description: `Recent writing from ${agent_display_name} on ${primary_city} real estate.`
+- Canonical: `https://${hostname}/blog` (page 1) or `https://${hostname}/blog?page=${n}`
+
+JSON-LD: `CollectionPage` with `ItemList` of post URLs + a `BreadcrumbList` (`Home → Writing`).
+
+---
+
 ## 5. `/about` route
 
 Pull from `public_client_profile` + `public_client_site` + `public_client_market` + `public_site_copy` + `public_client_areas`.
@@ -170,7 +249,7 @@ Plain HTML so crawlers and LLMs read it directly. No `tel:` confusion, no obfusc
 
 `formatPhoneUs("+16125551234") => "(612) 555-1234"`.
 
-If a NAP field is empty, omit that line — never render placeholder text.
+**Conditional rendering — strict rule:** If a NAP field is `null`, omit the entire line (and the wrapping element if that's the only content). Never render `"—"`, "N/A", "Phone:", or any placeholder text on a public site. The same rule applies to the header phone slot (§3a) and the footer column (§3b): hide the slot entirely until the underlying field is populated. LLMs will cite whatever they see; a blank "Phone:" line ends up as part of the citation.
 
 ---
 
@@ -372,3 +451,14 @@ If the renderer adds any new paths (e.g. `/about`, `/areas/...`, `/sitemap.xml`,
 - [ ] `/robots.txt` includes GPTBot, ClaudeBot, PerplexityBot, Google-Extended
 - [ ] `/llms.txt` renders agent summary + areas + posts
 - [ ] OG image preview works in Slack/Twitter card validator
+- [ ] Persistent header renders on every page; phone slot is hidden when `phone_e164` is null
+- [ ] Persistent footer renders on every page with NAP, areas list, recent posts; missing fields collapse silently
+- [ ] `/blog` returns a paginated list (not 404) and is in the sitemap
+
+---
+
+## 14. Canonical area names (data-side note, not renderer work)
+
+The dashboard now canonicalizes geographic names via the `generate-area-pages` edge function. When a client types `"hennipan, MN"` during intake, the AI rewrites the value in `client_markets.cities` (etc.) to `"Hennepin"` and stashes the original in `client_markets.raw_input.original` for audit. The `client_areas.slug` is regenerated from the corrected name; the previous orphaned row is deleted and its public path is queued for cache purge.
+
+**Renderer impact:** none — `public_client_areas` and `public_client_market` will simply start returning correctly spelled names. No code changes required, but be aware that an existing area slug like `/areas/hennipan-county-mn` may disappear and be replaced by `/areas/hennepin-mn` on the next sync. The cache purge queue already handles both old and new paths.

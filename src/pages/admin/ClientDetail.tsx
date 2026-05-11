@@ -9,6 +9,7 @@ import { Sparkles, Trash2, Plus, Rocket, Mail } from "lucide-react";
 import { DomainTab } from "@/components/admin/DomainTab";
 import { SiteCopyTab } from "@/components/admin/SiteCopyTab";
 import { AreasTab } from "@/components/admin/AreasTab";
+import { MarketsCard } from "@/components/admin/MarketsCard";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -227,7 +228,7 @@ export default function AdminClientDetail() {
               </div>
             </div>
             <div className="findr-card">
-              <p className="section-label mb-3">MARKET</p>
+              <p className="section-label mb-3">MARKET (read-only summary)</p>
               <div className="text-sm space-y-1">
                 <div><span className="text-muted-foreground">Primary:</span> {market?.primary_city ?? "—"}, {market?.primary_state ?? "—"}</div>
                 <div><span className="text-muted-foreground">Cities:</span> {market?.cities?.join(", ") || "—"}</div>
@@ -236,6 +237,8 @@ export default function AdminClientDetail() {
               </div>
             </div>
           </div>
+
+          {clientId && <MarketsCard clientId={clientId} market={market} onSaved={load} />}
 
           <NapCard client={client} onSaved={load} />
 
