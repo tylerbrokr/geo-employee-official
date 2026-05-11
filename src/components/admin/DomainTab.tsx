@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Globe, Copy, Trash2 } from "lucide-react";
+import { RefreshCw, Globe, Copy, Pencil } from "lucide-react";
 
 interface Props { clientId: string }
 
