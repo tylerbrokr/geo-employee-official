@@ -62,6 +62,77 @@ export type Database = {
           },
         ]
       }
+      client_areas: {
+        Row: {
+          ai_generated_at: string | null
+          ai_model: string | null
+          area_type: string
+          client_id: string
+          created_at: string
+          faqs: Json
+          id: string
+          intro: string
+          manually_edited: Json
+          market_blurb: string
+          meta_description: string
+          meta_title: string
+          name: string
+          parent_area_id: string | null
+          slug: string
+          stale: boolean
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_generated_at?: string | null
+          ai_model?: string | null
+          area_type: string
+          client_id: string
+          created_at?: string
+          faqs?: Json
+          id?: string
+          intro?: string
+          manually_edited?: Json
+          market_blurb?: string
+          meta_description?: string
+          meta_title?: string
+          name: string
+          parent_area_id?: string | null
+          slug: string
+          stale?: boolean
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_generated_at?: string | null
+          ai_model?: string | null
+          area_type?: string
+          client_id?: string
+          created_at?: string
+          faqs?: Json
+          id?: string
+          intro?: string
+          manually_edited?: Json
+          market_blurb?: string
+          meta_description?: string
+          meta_title?: string
+          name?: string
+          parent_area_id?: string | null
+          slug?: string
+          stale?: boolean
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_areas_parent_area_id_fkey"
+            columns: ["parent_area_id"]
+            isOneToOne: false
+            referencedRelation: "client_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_markets: {
         Row: {
           cities: string[]
@@ -266,6 +337,7 @@ export type Database = {
           brokerage: string | null
           brokerage_story: string | null
           business_name: string | null
+          city: string | null
           created_at: string
           differentiators: string | null
           headshot_url: string | null
@@ -275,11 +347,15 @@ export type Database = {
           logo_url: string | null
           owner_user_id: string
           phone: string | null
+          phone_e164: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          postal_code: string | null
           primary_color: string | null
           property_types: string[]
           site_status: Database["public"]["Enums"]["site_status"]
           site_url: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
           values_text: string | null
           voice: string | null
@@ -293,6 +369,7 @@ export type Database = {
           brokerage?: string | null
           brokerage_story?: string | null
           business_name?: string | null
+          city?: string | null
           created_at?: string
           differentiators?: string | null
           headshot_url?: string | null
@@ -302,11 +379,15 @@ export type Database = {
           logo_url?: string | null
           owner_user_id: string
           phone?: string | null
+          phone_e164?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          postal_code?: string | null
           primary_color?: string | null
           property_types?: string[]
           site_status?: Database["public"]["Enums"]["site_status"]
           site_url?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
           values_text?: string | null
           voice?: string | null
@@ -320,6 +401,7 @@ export type Database = {
           brokerage?: string | null
           brokerage_story?: string | null
           business_name?: string | null
+          city?: string | null
           created_at?: string
           differentiators?: string | null
           headshot_url?: string | null
@@ -329,11 +411,15 @@ export type Database = {
           logo_url?: string | null
           owner_user_id?: string
           phone?: string | null
+          phone_e164?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          postal_code?: string | null
           primary_color?: string | null
           property_types?: string[]
           site_status?: Database["public"]["Enums"]["site_status"]
           site_url?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
           values_text?: string | null
           voice?: string | null
@@ -622,6 +708,7 @@ export type Database = {
           manually_edited: Json
           meta_description: string
           meta_title: string
+          og_image_url: string | null
           stale: boolean
           tagline: string
           updated_at: string
@@ -638,6 +725,7 @@ export type Database = {
           manually_edited?: Json
           meta_description?: string
           meta_title?: string
+          og_image_url?: string | null
           stale?: boolean
           tagline?: string
           updated_at?: string
@@ -654,6 +742,7 @@ export type Database = {
           manually_edited?: Json
           meta_description?: string
           meta_title?: string
+          og_image_url?: string | null
           stale?: boolean
           tagline?: string
           updated_at?: string
@@ -683,6 +772,22 @@ export type Database = {
       }
     }
     Views: {
+      public_client_areas: {
+        Row: {
+          area_type: string | null
+          client_id: string | null
+          faqs: Json | null
+          intro: string | null
+          market_blurb: string | null
+          meta_description: string | null
+          meta_title: string | null
+          name: string | null
+          slug: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       public_client_market: {
         Row: {
           cities: string[] | null
