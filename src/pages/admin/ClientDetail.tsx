@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, Trash2, Plus, Rocket, Mail } from "lucide-react";
 import { DomainTab } from "@/components/admin/DomainTab";
+import { SiteCopyTab } from "@/components/admin/SiteCopyTab";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -197,10 +198,15 @@ export default function AdminClientDetail() {
           <TabsTrigger value="topics">Topics ({topics.length})</TabsTrigger>
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
           <TabsTrigger value="domain">Domain</TabsTrigger>
+          <TabsTrigger value="copy">Site copy</TabsTrigger>
         </TabsList>
 
         <TabsContent value="domain" className="mt-6">
           {clientId && <DomainTab clientId={clientId} />}
+        </TabsContent>
+
+        <TabsContent value="copy" className="mt-6">
+          {clientId && <SiteCopyTab clientId={clientId} />}
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6 mt-6">

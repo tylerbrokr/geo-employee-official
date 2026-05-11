@@ -123,6 +123,13 @@ Deno.serve(async (req) => {
       };
     }
 
+    // Look up agent display name from profile
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", (await admin.from("clients").select("owner_user_id").eq("id", clientId).maybeSingle()).data?.owner_user_id ?? "")
+      .maybeSingle();
+
     const upsertRow: any = {
       client_id: clientId,
       subdomain,
@@ -134,6 +141,7 @@ Deno.serve(async (req) => {
       verify_attempts: customDomain && customDomain !== existingSite?.custom_domain ? 0 : (existingSite?.verify_attempts ?? 0),
       provisioned_at: existingSite?.provisioned_at ?? new Date().toISOString(),
       dns_verified: customDomain ? (existingSite?.custom_domain === customDomain ? existingSite?.dns_verified ?? false : false) : true,
+      agent_display_name: existingSite?.agent_display_name ?? profile?.full_name ?? null,
     };
 
     if (existingSite) {
@@ -141,6 +149,12 @@ Deno.serve(async (req) => {
     } else {
       await admin.from("client_sites").insert(upsertRow);
     }
+
+    // Ensure site_copy row exists (stale=true so cron generates initial copy)
+    await admin.from("site_copy").upsert(
+      { client_id: clientId, stale: true },
+      { onConflict: "client_id", ignoreDuplicates: true },
+    );
 
     return json({
       subdomain,
