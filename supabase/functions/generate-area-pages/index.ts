@@ -359,7 +359,12 @@ No prose, no markdown, no code fences. JSON object only.`;
         ? site.custom_domain
         : site.subdomain ? `${site.subdomain}.${SUBDOMAIN_HOST}` : null;
       if (hostname) {
-        const paths = ["/", ...toGen.map((a: any) => `/areas/${a.slug}`)];
+        const paths = Array.from(new Set([
+          "/",
+          "/areas",
+          ...toGen.map((a: any) => `/areas/${a.slug}`),
+          ...orphans.map((o: any) => `/areas/${o.slug}`),
+        ]));
         await admin.from("site_cache_purges").insert({
           client_id: clientId,
           hostname,
