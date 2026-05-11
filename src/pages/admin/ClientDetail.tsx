@@ -374,3 +374,65 @@ export default function AdminClientDetail() {
     </div>
   );
 }
+
+// NAP (Name / Address / Phone) — public-facing data the renderer cites for LLM
+// authority and LocalBusiness schema. Not collected in onboarding because it's
+// optional and admin-curated.
+const NAP_FIELDS: { key: string; label: string; placeholder: string }[] = [
+  { key: "phone_e164", label: "Phone (E.164)", placeholder: "+16125551234" },
+  { key: "street_address", label: "Street address", placeholder: "123 Main St" },
+  { key: "city", label: "City", placeholder: "Edina" },
+  { key: "state", label: "State", placeholder: "MN" },
+  { key: "postal_code", label: "Postal code", placeholder: "55424" },
+];
+
+function NapCard({ client, onSaved }: { client: any; onSaved: () => void }) {
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
+    const d: Record<string, string> = {};
+    for (const f of NAP_FIELDS) d[f.key] = client[f.key] ?? "";
+    return d;
+  });
+  const [saving, setSaving] = useState(false);
+  const dirty = NAP_FIELDS.some((f) => (drafts[f.key] ?? "") !== (client[f.key] ?? ""));
+
+  const save = async () => {
+    setSaving(true);
+    const patch: any = {};
+    for (const f of NAP_FIELDS) patch[f.key] = drafts[f.key]?.trim() || null;
+    const { error } = await supabase.from("clients").update(patch).eq("id", client.id);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Saved"); onSaved(); }
+  };
+
+  return (
+    <div className="findr-card">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="section-label">PUBLIC NAP (NAME · ADDRESS · PHONE)</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Shown publicly on the agent's site. Used by LLMs and search engines as citation authority signals. Optional but recommended.
+          </p>
+        </div>
+        {dirty && (
+          <Button size="sm" onClick={save} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-5 gap-3">
+        {NAP_FIELDS.map((f) => (
+          <div key={f.key}>
+            <label className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">{f.label}</label>
+            <Input
+              value={drafts[f.key] ?? ""}
+              onChange={(e) => setDrafts((d) => ({ ...d, [f.key]: e.target.value }))}
+              placeholder={f.placeholder}
+              className="h-9 text-sm"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
