@@ -80,24 +80,43 @@ async function runForClient(admin: any, apiKey: string, client_id: string) {
   ]);
   const { data: profile } = await admin.from("profiles").select("full_name").eq("id", client.owner_user_id).maybeSingle();
 
+  const napLines: string[] = [];
+  if (client.street_address) napLines.push(client.street_address);
+  const cityLine = [client.city, client.state].filter(Boolean).join(", ");
+  if (cityLine || client.postal_code) napLines.push([cityLine, client.postal_code].filter(Boolean).join(" "));
+  if (client.phone_e164) napLines.push(`Phone: ${client.phone_e164}`);
+  const nap = napLines.length ? napLines.join("\n") : "(no address on file — omit the address line)";
+
   const userPrompt = `
-Write the blog post.
+Write the post.
 
-Agent: ${profile?.full_name ?? "the agent"}
-Brokerage: ${client.brokerage ?? "—"}
+Question to answer (this is the post title): ${topic.title}
+Geographic focus: ${topic.geo_scope ?? market?.primary_city ?? "—"}
+Talking points to cover (one short H2 per bullet):
+${(topic.talking_points ?? []).map((b: string) => `- ${b}`).join("\n") || "- (none, use your judgment)"}
+Suggested H2 outline (refine wording as needed):
+${(topic.h2s ?? []).map((h: string) => `- ${h}`).join("\n") || "- (none)"}
+Target word count: ${topic.word_count ?? 800}
+
+Agent identity (use repeatedly and naturally):
+- Name: ${profile?.full_name ?? "the agent"}
+- Brokerage: ${client.brokerage ?? "—"}
+- Years in business: ${client.years_experience ?? "—"}
+- Voice: ${client.voice ?? "professional and warm"}
+- Differentiators: ${client.differentiators ?? "—"}
+- Ideal client: ${client.ideal_client ?? "—"}
+
 Primary market: ${market?.primary_city ?? "—"}, ${market?.primary_state ?? "—"}
-Voice: ${client.voice ?? "professional and warm"}
+Cities I work: ${(market?.cities ?? []).join(", ") || "—"}
+Neighborhoods I work: ${(market?.neighborhoods ?? []).join(", ") || "—"}
+Counties I work: ${(market?.counties ?? []).join(", ") || "—"}
 
-Topic: ${topic.title}
-Primary keyword: ${topic.primary_keyword ?? "—"}
-Secondary keywords: ${(topic.secondary_keywords ?? []).join(", ") || "—"}
-Geo scope: ${topic.geo_scope ?? "—"}
-Niche: ${topic.niche ?? "—"}
-Target word count: ${topic.word_count ?? 900}
-H2 outline: ${(topic.h2s ?? []).join(" | ") || "—"}
-Talking points: ${(topic.talking_points ?? []).join(" | ") || "—"}
+NAP block to include verbatim in the "How to reach me" section:
+${profile?.full_name ?? ""}
+${client.brokerage ?? ""}
+${nap}
 
-Return JSON: { "title": string, "slug": string (kebab-case), "tag": string, "excerpt": string (140-180 chars), "body": string (markdown) }
+Return JSON only: { "title", "slug" (kebab-case), "tag", "excerpt" (140-180 chars), "body" (markdown) }
 `.trim();
 
   const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
