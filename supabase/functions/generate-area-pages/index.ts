@@ -181,13 +181,13 @@ Deno.serve(async (req) => {
     const desired: { name: string; state: string | null; area_type: "city" | "neighborhood" | "county"; parent_name: string | null }[] = [];
 
     if (primaryCity) desired.push({ name: primaryCity, state: primaryState, area_type: "city", parent_name: null });
-    for (const c of (market?.cities ?? []) as string[]) {
+    for (const c of citiesArr) {
       if (c && c !== primaryCity) desired.push({ name: c, state: primaryState, area_type: "city", parent_name: null });
     }
-    for (const n of (market?.neighborhoods ?? []) as string[]) {
+    for (const n of neighborhoodsArr) {
       if (n) desired.push({ name: n, state: primaryState, area_type: "neighborhood", parent_name: primaryCity });
     }
-    for (const co of (market?.counties ?? []) as string[]) {
+    for (const co of countiesArr) {
       if (co) desired.push({ name: co, state: primaryState, area_type: "county", parent_name: null });
     }
 
@@ -198,10 +198,26 @@ Deno.serve(async (req) => {
       .eq("client_id", clientId);
     const bySlug = new Map((existingAreas ?? []).map((a: any) => [a.slug, a]));
 
-    // Upsert rows for desired areas (creates missing, no-op on existing)
+    // Orphan cleanup: when a name canonicalizes to a new slug (typo fix),
+    // the old row must be deleted and its public path purged.
+    const desiredSlugs = new Set(desired.map((d) => areaSlug(d.name, d.state, d.area_type)));
+    const orphans = (existingAreas ?? []).filter((a: any) => !desiredSlugs.has(a.slug));
+    if (orphans.length) {
+      await admin.from("client_areas").delete().in("id", orphans.map((o: any) => o.id));
+      for (const o of orphans) bySlug.delete(o.slug);
+    }
+
+    // Upsert rows for desired areas (creates missing, updates renamed)
     for (const d of desired) {
       const slug = areaSlug(d.name, d.state, d.area_type);
-      if (bySlug.has(slug)) continue;
+      if (bySlug.has(slug)) {
+        const ex: any = bySlug.get(slug);
+        if (ex && ex.name !== d.name) {
+          await admin.from("client_areas").update({ name: d.name, stale: true }).eq("id", ex.id);
+          ex.name = d.name; ex.stale = true;
+        }
+        continue;
+      }
       const { data: inserted } = await admin
         .from("client_areas")
         .insert({
