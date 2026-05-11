@@ -249,7 +249,7 @@ Plain HTML so crawlers and LLMs read it directly. No `tel:` confusion, no obfusc
 
 `formatPhoneUs("+16125551234") => "(612) 555-1234"`.
 
-If a NAP field is empty, omit that line — never render placeholder text.
+**Conditional rendering — strict rule:** If a NAP field is `null`, omit the entire line (and the wrapping element if that's the only content). Never render `"—"`, "N/A", "Phone:", or any placeholder text on a public site. The same rule applies to the header phone slot (§3a) and the footer column (§3b): hide the slot entirely until the underlying field is populated. LLMs will cite whatever they see; a blank "Phone:" line ends up as part of the citation.
 
 ---
 
