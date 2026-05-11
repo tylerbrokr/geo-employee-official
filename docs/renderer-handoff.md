@@ -172,6 +172,43 @@ JSON-LD on this page:
 
 ---
 
+## 4a. `/blog` index route (NEW — currently 404s, must be fixed)
+
+The sitemap will list `/blog`, and crawlers/LLMs will hit it. Returning 404 wastes a top-level URL.
+
+Query:
+
+```ts
+const PAGE_SIZE = 20;
+const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+const from = (page - 1) * PAGE_SIZE;
+const to = from + PAGE_SIZE - 1;
+
+const { data: posts, count } = await supabase
+  .from("posts")
+  .select("slug, title, excerpt, cover_image_url, published_at", { count: "exact" })
+  .eq("client_id", clientId)
+  .eq("status", "published")
+  .order("published_at", { ascending: false })
+  .range(from, to);
+```
+
+Render:
+
+- **H1**: "Writing" (or "Blog" — keep it short)
+- One card per post: title (link to `/blog/{slug}`), excerpt, formatted date, optional cover image
+- Pagination: prev/next links using `?page=N`. Hide prev on page 1, next when `from + posts.length >= count`.
+- Empty state: "No posts yet." plain text. No CTA, no faux-content.
+
+Meta:
+- Title: `Writing | ${agent_display_name}`
+- Description: `Recent writing from ${agent_display_name} on ${primary_city} real estate.`
+- Canonical: `https://${hostname}/blog` (page 1) or `https://${hostname}/blog?page=${n}`
+
+JSON-LD: `CollectionPage` with `ItemList` of post URLs + a `BreadcrumbList` (`Home → Writing`).
+
+---
+
 ## 5. `/about` route
 
 Pull from `public_client_profile` + `public_client_site` + `public_client_market` + `public_site_copy` + `public_client_areas`.
