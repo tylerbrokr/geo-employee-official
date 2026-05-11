@@ -237,6 +237,8 @@ export default function AdminClientDetail() {
             </div>
           </div>
 
+          <NapCard client={client} onSaved={load} />
+
           <div className="findr-card">
             <p className="section-label mb-3">SPECIALTIES</p>
             <div className="flex flex-wrap gap-2">
