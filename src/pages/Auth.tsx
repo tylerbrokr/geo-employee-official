@@ -38,7 +38,7 @@ export default function Auth() {
           },
         });
         if (error) throw error;
-        toast.success("Account created. You're being signed in...");
+        toast.success("Account created. You're being signed in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -51,53 +51,92 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#F8FAFC" }}>
-      <div className="flex items-center gap-2 mb-8">
-        <span className="w-2.5 h-2.5 rounded-full bg-primary emerald-pulse" />
-        <span className="text-xl font-bold text-foreground tracking-tight">GEO</span>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
+      {/* Wordmark */}
+      <div className="flex items-center gap-2.5 mb-10">
+        <span
+          className="w-1.5 h-1.5 rounded-none gold-pulse"
+          style={{ background: "hsl(var(--gold))" }}
+        />
+        <span className="text-sm font-semibold tracking-[0.2em] uppercase text-foreground">
+          GEO
+        </span>
       </div>
 
-      <div
-        className="w-full max-w-[420px] rounded-2xl p-10 bg-white"
-        style={{
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -4px rgba(0,0,0,0.10)",
-        }}
-      >
-        <h1 className="text-[22px] font-semibold tracking-tight">
+      {/* Card — square, hairline ink-08 border, no shadow */}
+      <div className="w-full max-w-[440px] bg-background border border-border p-10">
+        <h1
+          className="text-[34px] leading-[1.1] tracking-tight text-foreground"
+          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 500 }}
+        >
           {mode === "signin" ? "Welcome back." : "Create your account."}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1 mb-6">
-          {mode === "signin" ? "Sign in to your GEO portal." : "Get started with your GEO site."}
+        <p className="text-sm text-muted-foreground mt-2 mb-8">
+          {mode === "signin"
+            ? "Sign in to your GEO portal."
+            : "Get started with your GEO site."}
         </p>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-5">
           {mode === "signup" && (
             <div>
-              <Label className="text-[13px] font-medium mb-1.5 block">Full Name</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required className="h-10 rounded-[12px]" />
+              <Label className="section-label mb-2 block">Full name</Label>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className="h-11 rounded-none border-border bg-background"
+              />
             </div>
           )}
           <div>
-            <Label className="text-[13px] font-medium mb-1.5 block">Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 rounded-[12px]" />
+            <Label className="section-label mb-2 block">Email</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-11 rounded-none border-border bg-background"
+            />
           </div>
           <div>
-            <Label className="text-[13px] font-medium mb-1.5 block">Password</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-10 rounded-[12px]" />
+            <Label className="section-label mb-2 block">Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="h-11 rounded-none border-border bg-background"
+            />
           </div>
-          <Button type="submit" disabled={submitting} className="w-full h-10 rounded-[12px] font-medium">
-            {submitting ? "Please wait..." : mode === "signin" ? "Sign In" : "Create Account"}
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="w-full h-11 rounded-none font-medium tracking-wide"
+          >
+            {submitting
+              ? "Please wait."
+              : mode === "signin"
+                ? "Sign in"
+                : "Create account"}
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-muted-foreground">
-          {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="text-primary hover:underline font-medium">
+        <div className="mt-8 pt-6 border-t border-border text-center text-sm text-muted-foreground">
+          {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+          <button
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="text-foreground hover:opacity-70 font-medium transition-opacity"
+          >
             {mode === "signin" ? "Sign up" : "Sign in"}
           </button>
         </div>
       </div>
+
+      <p className="mt-8 text-xs text-muted-foreground tracking-wide">
+        A delivery tool of <span className="text-foreground">The Inner Cirql</span>.
+      </p>
     </div>
   );
 }
