@@ -2,6 +2,7 @@
 // - Generates/ensures a unique subdomain (lives instantly on *.mygeosite.com)
 // - If a custom_domain is provided, creates a Cloudflare SaaS Custom Hostname
 //   and stores the returned id + the DNS records the agent needs to add.
+// - Triggers initial area-page generation for the client's markets.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -18,7 +19,7 @@ function slugify(input: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "site";
+    .slice(0, 40);
 }
 
 function isValidDomain(d: string): boolean {
@@ -54,9 +55,19 @@ Deno.serve(async (req) => {
       return json({ error: "invalid custom_domain" }, 400);
     }
 
-    // Load client + existing site row
-    const { data: client } = await admin.from("clients").select("id, business_name").eq("id", clientId).maybeSingle();
+    // Load client + owner profile + existing site row
+    const { data: client } = await admin
+      .from("clients")
+      .select("id, business_name, brokerage, owner_user_id")
+      .eq("id", clientId)
+      .maybeSingle();
     if (!client) return json({ error: "client not found" }, 404);
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", client.owner_user_id)
+      .maybeSingle();
 
     const { data: existingSite } = await admin
       .from("client_sites")
@@ -64,10 +75,23 @@ Deno.serve(async (req) => {
       .eq("client_id", clientId)
       .maybeSingle();
 
-    // Resolve subdomain
+    // Resolve subdomain — prefer agent's full name, fall back through brand fields
     let subdomain = existingSite?.subdomain ?? null;
     if (!subdomain) {
-      const base = slugify(client.business_name ?? "site");
+      const candidates = [
+        profile?.full_name,
+        client.business_name,
+        client.brokerage,
+        profile?.email?.split("@")[0],
+      ];
+      let base = "";
+      for (const c of candidates) {
+        if (!c) continue;
+        const slug = slugify(String(c));
+        if (slug.length >= 2) { base = slug; break; }
+      }
+      if (!base) base = "site";
+
       let candidate = base;
       let n = 2;
       while (true) {
@@ -123,13 +147,6 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Look up agent display name from profile
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("full_name")
-      .eq("id", (await admin.from("clients").select("owner_user_id").eq("id", clientId).maybeSingle()).data?.owner_user_id ?? "")
-      .maybeSingle();
-
     const upsertRow: any = {
       client_id: clientId,
       subdomain,
@@ -155,6 +172,10 @@ Deno.serve(async (req) => {
       { client_id: clientId, stale: true },
       { onConflict: "client_id", ignoreDuplicates: true },
     );
+
+    // Kick off area-page generation in the background (non-blocking).
+    // generate-area-pages is idempotent and respects existing rows.
+    void admin.functions.invoke("generate-area-pages", { body: { client_id: clientId } });
 
     return json({
       subdomain,
