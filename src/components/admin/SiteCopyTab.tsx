@@ -60,9 +60,11 @@ export function SiteCopyTab({ clientId }: { clientId: string }) {
   const saveField = async (key: string) => {
     setBusy(key);
     const manuallyEdited = { ...(copy?.manually_edited ?? {}), [key]: true };
+    const update: any = { manually_edited: manuallyEdited };
+    update[key] = drafts[key];
     const { error } = await supabase
       .from("site_copy")
-      .update({ [key]: drafts[key], manually_edited: manuallyEdited })
+      .update(update)
       .eq("client_id", clientId);
     setBusy(null);
     if (error) { toast.error(error.message); return; }
