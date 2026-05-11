@@ -112,6 +112,7 @@ export type Database = {
       }
       client_sites: {
         Row: {
+          agent_display_name: string | null
           client_id: string
           cloudflare_hostname_id: string | null
           created_at: string
@@ -128,6 +129,7 @@ export type Database = {
           verify_attempts: number
         }
         Insert: {
+          agent_display_name?: string | null
           client_id: string
           cloudflare_hostname_id?: string | null
           created_at?: string
@@ -144,6 +146,7 @@ export type Database = {
           verify_attempts?: number
         }
         Update: {
+          agent_display_name?: string | null
           client_id?: string
           cloudflare_hostname_id?: string | null
           created_at?: string
@@ -605,6 +608,57 @@ export type Database = {
             referencedColumns: ["client_id"]
           },
         ]
+      }
+      site_copy: {
+        Row: {
+          ai_generated_at: string | null
+          ai_model: string | null
+          area_blurb: string
+          bio_long: string
+          bio_short: string
+          client_id: string
+          created_at: string
+          ideal_client_blurb: string
+          manually_edited: Json
+          meta_description: string
+          meta_title: string
+          stale: boolean
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          ai_generated_at?: string | null
+          ai_model?: string | null
+          area_blurb?: string
+          bio_long?: string
+          bio_short?: string
+          client_id: string
+          created_at?: string
+          ideal_client_blurb?: string
+          manually_edited?: Json
+          meta_description?: string
+          meta_title?: string
+          stale?: boolean
+          tagline?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_generated_at?: string | null
+          ai_model?: string | null
+          area_blurb?: string
+          bio_long?: string
+          bio_short?: string
+          client_id?: string
+          created_at?: string
+          ideal_client_blurb?: string
+          manually_edited?: Json
+          meta_description?: string
+          meta_title?: string
+          stale?: boolean
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
