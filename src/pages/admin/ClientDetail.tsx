@@ -317,9 +317,9 @@ export default function AdminClientDetail() {
             ) : (
               topics.map((t, i) => (
                 <div key={t.id}>
-                  <div className="grid grid-cols-[80px_1fr_140px_110px_40px] gap-3 items-center px-6 py-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold" style={{ color: t.kind === "geo" ? "hsl(160 84% 30%)" : "hsl(220 9% 46%)" }}>
-                      {t.kind}
+                  <div className="grid grid-cols-[140px_1fr_140px_110px_40px] gap-3 items-center px-6 py-3">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground truncate" title={t.geo_scope ?? ""}>
+                      {t.geo_scope ?? "—"}
                     </span>
                     <Input
                       defaultValue={t.title}
