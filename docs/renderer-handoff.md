@@ -462,3 +462,188 @@ If the renderer adds any new paths (e.g. `/about`, `/areas/...`, `/sitemap.xml`,
 The dashboard now canonicalizes geographic names via the `generate-area-pages` edge function. When a client types `"hennipan, MN"` during intake, the AI rewrites the value in `client_markets.cities` (etc.) to `"Hennepin"` and stashes the original in `client_markets.raw_input.original` for audit. The `client_areas.slug` is regenerated from the corrected name; the previous orphaned row is deleted and its public path is queued for cache purge.
 
 **Renderer impact:** none — `public_client_areas` and `public_client_market` will simply start returning correctly spelled names. No code changes required, but be aware that an existing area slug like `/areas/hennipan-county-mn` may disappear and be replaced by `/areas/hennepin-mn` on the next sync. The cache purge queue already handles both old and new paths.
+
+---
+
+## 15. Blog post body — render `posts.body` as markdown (CRITICAL BUG)
+
+**Current behavior:** `/blog/[slug]` renders `post.body` as plain text. Markdown headers, paragraph breaks, and lists all collapse into one wall of text. Example seen in production: `"...Hennepin County. ## Why work with a local agent in Edina Choosing..."` — the `##` is rendered literally instead of as a heading. This destroys GEO citation quality because LLMs cannot identify the answer capsule, the question H2s, or the About section.
+
+**Fix:** Add a markdown parser to the blog post route. The dashboard-side prompt was rewritten to follow the GEO Answer Page contract (H1 = question, H2s = follow-up questions, mandatory `## About {Agent}` section, blank lines around every header). All new generated posts will be valid markdown. The renderer just needs to parse it.
+
+### Install
+
+```bash
+npm install react-markdown remark-gfm rehype-slug rehype-autolink-headings
+```
+
+- `react-markdown` — parser
+- `remark-gfm` — GitHub-flavored markdown (tables, autolinks, strikethrough)
+- `rehype-slug` — auto-generates `id` on every heading so anchor links work
+- `rehype-autolink-headings` — wraps each heading in an anchor link (good for AI extraction and deep-linking)
+
+### Component
+
+Create `components/PostBody.tsx` (or wherever the blog post body is rendered):
+
+```tsx
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+
+export function PostBody({ markdown }: { markdown: string }) {
+  return (
+    <div className="post-body">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[
+          rehypeSlug,
+          [rehypeAutolinkHeadings, { behavior: "wrap" }],
+        ]}
+        components={{
+          // Strip the markdown H1 — the page already renders the title as <h1>.
+          // Promote the first H2 down only if you also want to enforce single-H1; otherwise leave defaults.
+          h1: () => null,
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    </div>
+  );
+}
+```
+
+Use it in the blog post route:
+
+```tsx
+// before:
+<div>{post.body}</div>
+
+// after:
+<PostBody markdown={post.body ?? ""} />
+```
+
+The page-level `<h1>{post.title}</h1>` stays as it is. The `h1: () => null` override prevents a duplicate H1 if the model also includes one in `body` (the new prompt does — see §15a).
+
+### Stylesheet
+
+Add to the global stylesheet (or scope under `.post-body`). Match the brand bible: Cormorant Garamond display headings, Helvetica Neue body, ink text, hairline rules, ZERO border-radius.
+
+```css
+.post-body {
+  color: #1a1a1a;
+  font-family: "Helvetica Neue", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  max-width: 720px;
+}
+.post-body h2 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 2.5rem 0 1rem;
+  letter-spacing: -0.01em;
+}
+.post-body h3 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.375rem;
+  font-weight: 500;
+  margin: 2rem 0 0.75rem;
+}
+.post-body p { margin: 0 0 1.25rem; }
+.post-body a {
+  color: var(--brand-accent, #c9a96e);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.post-body ul, .post-body ol { margin: 0 0 1.25rem 1.5rem; }
+.post-body li { margin: 0 0 0.5rem; }
+.post-body hr {
+  border: 0;
+  border-top: 1px solid rgba(26, 26, 26, 0.08);
+  margin: 2.5rem 0;
+}
+.post-body blockquote {
+  border-left: 2px solid var(--brand-accent, #c9a96e);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #555;
+}
+/* Anchor link wrapper from rehype-autolink-headings — hide the underline on hover-only */
+.post-body h2 a, .post-body h3 a { color: inherit; text-decoration: none; }
+```
+
+No border-radius anywhere. No drop shadows. No gradient text. This matches the dashboard side.
+
+### 15a. What the body now contains
+
+The dashboard-side generator (`supabase/functions/_shared/generate-post.ts`) now returns `body` in this exact shape:
+
+```markdown
+# {Title as a question}
+
+{Answer capsule — 2-3 sentences naming the agent, city, years experience, specific recommendation}
+
+## {Follow-up question 1}
+
+{2-3 self-contained paragraphs}
+
+## {Follow-up question 2}
+
+{2-3 self-contained paragraphs}
+
+## {Follow-up question 3}
+
+{2-3 self-contained paragraphs}
+
+## About {Agent Name}
+
+{2-3 sentences with E-E-A-T signals}
+
+{Agent Name}
+{Brokerage}
+{Street address}
+{City, State Zip}
+{Phone}
+```
+
+Every header has a blank line before and after it. Paragraphs are separated by `\n\n`. There are no em dashes, no emojis, no `---` dividers inside the body. The H1 in `body` duplicates `posts.title`; the `h1: () => null` override above strips it so the page chrome owns the title.
+
+### 15b. JSON-LD update for blog posts
+
+Now that body is real markdown, add `articleBody` to the existing `Article` JSON-LD (§7) using a plain-text version of the body (strip markdown). This gives LLMs a clean extraction target:
+
+```ts
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/^#{1,6}\s+/gm, "")        // headers
+    .replace(/\*\*(.+?)\*\*/g, "$1")    // bold
+    .replace(/\*(.+?)\*/g, "$1")        // italic
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1") // links
+    .replace(/`(.+?)`/g, "$1")          // inline code
+    .replace(/^>\s+/gm, "")             // blockquotes
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+```
+
+Add `"articleBody": stripMarkdown(post.body)` and `"wordCount": stripMarkdown(post.body).split(/\s+/).length` to the Article object.
+
+### 15c. Backfill
+
+Existing `posts` rows generated before this fix will still render as plain text inside the markdown component (no `##`, no structure), but they will at least have correct paragraph breaks if the original text had `\n\n`. The Inner Cirql team will manually delete and regenerate any pre-fix posts from the admin queue. No renderer-side migration needed.
+
+### 15d. Cache purge
+
+After deploying this change, hit "Purge cache" on each active client's Domain tab so the old plain-text HTML is evicted. The path set already includes `/blog/{slug}` for any post-publish purge, so future posts are fine — this is a one-time backfill.
+
+### Verification
+
+- [ ] View source on any `/blog/[slug]`: body contains real `<h2>`, `<p>`, `<ul>` elements (not literal `##` text)
+- [ ] No duplicate H1 (page H1 = post title; body H1 is suppressed)
+- [ ] H2s have `id` attributes (e.g., `id="why-work-with-a-local-agent-in-edina"`) and are wrapped in `<a>` so they're deep-linkable
+- [ ] Brand accent color applied to links (uses `var(--brand-accent)`)
+- [ ] No em dashes, no emojis, no `---` dividers visible in the rendered output
+- [ ] JSON-LD `Article` includes `articleBody` and `wordCount`
