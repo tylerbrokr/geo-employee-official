@@ -103,9 +103,30 @@ export default function AdminPostEditor() {
           <Label className="text-[13px] font-medium mb-1.5 block">Body (Markdown)</Label>
           <Textarea value={post.body ?? ""} onChange={(e) => setPost({ ...post, body: e.target.value })} rows={20} className="rounded-[12px] font-mono text-sm" />
         </div>
-        <div className="flex gap-3">
-          <Button onClick={() => save(false)} disabled={saving}>Save</Button>
-          <Button variant="secondary" onClick={() => save(true)} disabled={saving}>Save & Publish</Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => save(false)} disabled={saving || deleting}>Save</Button>
+          <Button variant="secondary" onClick={() => save(true)} disabled={saving || deleting}>Save & Publish</Button>
+          <div className="ml-auto">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={saving || deleting}>
+                  {deleting ? "Deleting..." : "Delete post"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes the post from the client's site and the queue. It cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
     </div>
