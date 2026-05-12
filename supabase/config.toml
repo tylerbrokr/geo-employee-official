@@ -35,3 +35,12 @@ verify_jwt = true
 
 [functions.geo-react]
 verify_jwt = true
+
+[functions.provision-custom-domain]
+verify_jwt = true
+
+[functions.remove-custom-hostname]
+verify_jwt = true
+
+[functions.verify-custom-domains]
+verify_jwt = false
