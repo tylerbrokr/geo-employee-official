@@ -5,7 +5,7 @@
 // as fallback so the slot isn't skipped.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { fetchNextReadyPost } from "../_shared/ready-posts.ts";
-import { generateOne } from "../autopilot-generate/index.ts";
+import { generateOne } from "../_shared/generate-post.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
