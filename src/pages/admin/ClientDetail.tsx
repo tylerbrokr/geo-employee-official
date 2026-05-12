@@ -353,12 +353,25 @@ export default function AdminClientDetail() {
         </TabsContent>
 
         <TabsContent value="posts" className="space-y-4 mt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{posts.length} total</p>
-            <Button size="sm" onClick={generate} disabled={generating}>
-              {generating ? "Generating..." : "Generate post"}
-            </Button>
-          </div>
+          {(() => {
+            const buffer = posts.filter((p) => ["draft", "pending_review", "scheduled"].includes(p.status)).length;
+            const lastAuto = client.last_autopublish_at ? new Date(client.last_autopublish_at).toLocaleDateString() : "never";
+            const dayLabel = client.autopilot_day != null
+              ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][client.autopilot_day]
+              : "—";
+            return (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground space-x-4">
+                  <span>Drafts ready: <span className="font-medium text-foreground">{buffer} / 4</span></span>
+                  <span>Last autopublish: <span className="font-medium text-foreground">{lastAuto}</span></span>
+                  <span>Next slot: <span className="font-medium text-foreground">{dayLabel}</span></span>
+                </div>
+                <Button size="sm" onClick={generate} disabled={generating}>
+                  {generating ? "Generating..." : "Generate post"}
+                </Button>
+              </div>
+            );
+          })()}
           <div className="findr-card !p-0">
             {posts.length === 0 ? (
               <div className="px-6 py-10 text-sm text-muted-foreground">No posts yet.</div>
