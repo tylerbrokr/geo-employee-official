@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FALLBACK_CNAME = "customers.mygeosite.com";
+const FALLBACK_CNAME = "customer.mygeosite.com";
 
 function isValidDomain(d: string): boolean {
   return /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63})+$/i.test(d);
