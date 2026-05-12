@@ -87,7 +87,9 @@ Deno.serve(async (req) => {
     const { data: inserted, error: insErr } = await admin.from("posts").insert({
       client_id, topic_id: topic.id, title, slug, body, tag, excerpt,
       target_keyword: topic.primary_keyword ?? title,
-      status: "pending_review",
+      // Default to 'scheduled' so it joins the autopilot publish queue automatically.
+      // Admin can edit before its slot lands. See supabase/functions/_shared/ready-posts.ts.
+      status: "scheduled",
     }).select().single();
     if (insErr) throw insErr;
 
