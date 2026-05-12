@@ -2,6 +2,22 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+function clientLabel(p: any): string {
+  const c = p.clients;
+  if (!c) return "—";
+  const siteName = Array.isArray(c.client_sites)
+    ? c.client_sites[0]?.agent_display_name
+    : c.client_sites?.agent_display_name;
+  return (
+    siteName ||
+    c.profiles?.full_name ||
+    c.business_name ||
+    c.brokerage ||
+    c.profiles?.email ||
+    "—"
+  );
+}
+
 export default function AdminPostsQueue() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +26,16 @@ export default function AdminPostsQueue() {
     (async () => {
       const { data } = await supabase
         .from("posts")
-        .select("id, title, status, created_at, client_id, clients!inner(business_name, owner_user_id)")
+        .select(`
+          id, title, status, created_at, client_id,
+          clients!inner(
+            business_name,
+            brokerage,
+            owner_user_id,
+            profiles:owner_user_id ( full_name, email ),
+            client_sites ( agent_display_name )
+          )
+        `)
         .order("created_at", { ascending: false })
         .limit(200);
       setPosts(data ?? []);
@@ -38,7 +63,7 @@ export default function AdminPostsQueue() {
             <div key={p.id}>
               <Link to={`/admin/posts/${p.id}`} className="grid grid-cols-[1.5fr_1fr_120px_120px] gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
                 <span className="text-sm font-medium truncate">{p.title}</span>
-                <span className="text-sm text-muted-foreground truncate">{p.clients?.business_name ?? "—"}</span>
+                <span className="text-sm text-muted-foreground truncate">{clientLabel(p)}</span>
                 <span className="text-xs flex items-center gap-1.5 self-center">
                   <span className={`w-1.5 h-1.5 rounded-full ${p.status === "published" ? "bg-emerald" : "bg-muted-foreground/50"}`} />
                   {p.status}
