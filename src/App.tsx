@@ -14,6 +14,7 @@ import Market from "./pages/Market";
 import Account from "./pages/Account";
 import Onboarding from "./pages/Onboarding";
 import Unsubscribe from "./pages/Unsubscribe";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import AdminClients from "./pages/admin/Clients";
 import AdminClientDetail from "./pages/admin/ClientDetail";
@@ -34,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/portal" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
 
             {/* Onboarding (client) */}
