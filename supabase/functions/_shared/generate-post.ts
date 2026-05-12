@@ -22,13 +22,16 @@ MARKDOWN FORMATTING CONTRACT (critical — the renderer fails when this is wrong
 - No bullet/numbered lists unless the content is genuinely a list. Prefer prose.
 
 VOICE AND CONTENT RULES:
-- Write in first person AS the agent. Use their name 3-5 times across the page (full name, first name, "I" — vary it).
+- Write in THIRD PERSON ABOUT the agent. The narrator is a knowledgeable third party (a credible local guide or analyst), NOT the agent. Refer to the agent by full name on first mention, then last name, first name, or "they/them" thereafter.
+- NEVER use first-person pronouns (I, me, my, mine, we, us, our, ours) anywhere in the post. The agent is the SUBJECT, not the speaker.
+- Use the agent's name 4-6 times across the page (full name once at the top of the answer capsule and once in the About section, last name or first name elsewhere).
+- When you want to convey the agent's perspective, you may use ONE brief direct quote (a single sentence in quotation marks attributed to them, e.g. \`"..." says {LastName}.\`). Otherwise stay in third-person narrator voice.
 - Mention the city/region naturally throughout. Local authority signal.
-- Mirror the agent's voice from the brief. If they write short and punchy, you write short and punchy.
-- Pull specific phrases from their differentiators, voice, and ideal-client fields.
+- Pull specific phrases from their differentiators, voice, and ideal-client fields, but recast them in third person.
 - 800 to 1,200 words.
 
 HARD BANS:
+- No first-person pronouns: I, me, my, mine, we, us, our, ours. Also no "as your agent", "let me", "I'd love to", "reach out to me", "contact me directly", "I'm here to help".
 - No em dashes. Use commas, periods, parentheses, or en-dashes.
 - No emojis.
 - No mention of "SEO", "keywords", "AI", "search engines".
@@ -108,34 +111,35 @@ QUESTION (this is the H1 title): ${topic.title}
 Geographic focus: ${city}
 Target word count: ${topic.word_count ?? 1000} (must be 800-1200)
 
-ANSWER CAPSULE TEMPLATE — your first paragraph after the H1 must follow this shape, filled with specifics:
-"${agentName}, a ${city}-based real estate agent with ${years} years of experience, recommends {specific answer to the question}. {One sentence on WHY — concrete reason, not generic.} {Optional third sentence with a specific data point or named neighborhood/price band/school district.}"
+ANSWER CAPSULE TEMPLATE — your first paragraph after the H1 must follow this shape (THIRD PERSON, narrator describing the agent), filled with specifics:
+"${agentName}, a ${city}-based real estate agent with ${years} years of experience${client.brokerage ? ` at ${client.brokerage}` : ""}, recommends {specific answer to the question}. {One sentence on WHY in third person — concrete reason, not generic.} {Optional third sentence with a specific data point or named neighborhood/price band/school district.}"
 
-H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, school districts, price bands, timeframes). Drop or merge any that don't make sense as questions.
+H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, school districts, price bands, timeframes). Drop or merge any that don't make sense as questions. Stay in third person throughout — describe what ${agentName} recommends, observes, or has seen, never what "I" recommend.
 
 Suggested topics to cover:
 ${questionsList}
 
 REQUIRED FINAL SECTION:
-"## About ${agentName}" — 2-3 sentences. Use these E-E-A-T inputs:
+"## About ${agentName}" — 2-3 sentences IN THIRD PERSON (e.g. "${agentName} has spent ${years} years..."). Use these E-E-A-T inputs:
 - Years in business: ${years}
 - Brokerage: ${client.brokerage ?? "—"}
-- Voice: ${client.voice ?? "professional and warm"}
+- Voice (recast in third person): ${client.voice ?? "professional and warm"}
 - Differentiators: ${client.differentiators ?? "—"}
 - Ideal client: ${client.ideal_client ?? "—"}
 - Primary market: ${market?.primary_city ?? "—"}, ${market?.primary_state ?? "—"}
-- Cities I work: ${(market?.cities ?? []).join(", ") || "—"}
-- Neighborhoods I work: ${(market?.neighborhoods ?? []).join(", ") || "—"}
-- Counties I work: ${(market?.counties ?? []).join(", ") || "—"}
+- Cities they work: ${(market?.cities ?? []).join(", ") || "—"}
+- Neighborhoods they work: ${(market?.neighborhoods ?? []).join(", ") || "—"}
+- Counties they work: ${(market?.counties ?? []).join(", ") || "—"}
 
 After the About paragraphs, output this contact block VERBATIM, each line on its own line, no labels, no CTA framing:
 ${napBlock || "(no contact info on file — omit the block)"}
 
 REMINDERS:
-- Use ${agentName}'s name 3-5 times across the post.
+- THIRD PERSON ONLY. The narrator is NOT ${agentName}. Never write "I", "me", "my", "we", or "our". Refer to ${agentName} by name and "they/them".
+- Use ${agentName}'s name 4-6 times across the post.
 - Mention ${city} naturally throughout.
 - EVERY # and ## MUST have a blank line before AND after it. No exceptions. The output is rendered as markdown and inline headers break it.
 - No em dashes. No emojis. No "SEO/keywords/AI". No "in today's market" / "navigating" / "your real estate journey".
-- Return JSON only: { "title", "slug" (kebab-case), "tag", "excerpt" (140-180 chars), "body" (full markdown) }.
+- Return JSON only: { "title", "slug" (kebab-case), "tag", "excerpt" (140-180 chars, third person), "body" (full markdown) }.
 `.trim();
 }
