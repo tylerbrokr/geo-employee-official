@@ -89,16 +89,16 @@ export default function MySite() {
                     </div>
                   </div>
                 )}
-                {dns.ownership && (
+                {dns.ownership_txt && (
                   <div className="bg-[hsl(40_30%_96%)] p-4 border border-input">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{dns.ownership.type ?? "TXT"} record (ownership)</div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">TXT record (ownership)</div>
                     <div className="grid grid-cols-[80px_1fr_auto] gap-3 text-sm items-center">
                       <span className="text-muted-foreground">Name</span>
-                      <code className="text-xs break-all">{dns.ownership.name}</code>
-                      <button onClick={() => copy(dns.ownership.name)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
+                      <code className="text-xs break-all">{dns.ownership_txt.name}</code>
+                      <button onClick={() => copy(dns.ownership_txt.name)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
                       <span className="text-muted-foreground">Value</span>
-                      <code className="text-xs break-all">{dns.ownership.value}</code>
-                      <button onClick={() => copy(dns.ownership.value)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
+                      <code className="text-xs break-all">{dns.ownership_txt.value}</code>
+                      <button onClick={() => copy(dns.ownership_txt.value)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
                     </div>
                   </div>
                 )}

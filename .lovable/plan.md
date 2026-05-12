@@ -1,84 +1,94 @@
-# Autonomous post generation + scheduled publishing
+# Automate custom domain provisioning
 
-Turn the pipeline into a true "AI employee": no admin clicks required after the initial topic list is generated. Two cron jobs do all the work.
+## Important reuse decision
 
-## What changes
+The schema already has equivalents for almost everything in your spec:
 
-```text
-Today:
-  admin clicks "Generate post"  ->  draft created (pending_review)
-  admin clicks "Publish"        ->  post goes live
-  autopilot-tick (hourly)       ->  generates AND publishes in one shot, only when "due"
+| Spec name | Existing column | Action |
+|---|---|---|
+| `cf_custom_hostname_id` | `cloudflare_hostname_id` | **Reuse existing** — no migration needed. I'll keep the current name (it's already wired into `verify-domains`, `provision-site`, and the types file) so we don't have to rename in 4 places. |
+| `dns_records` | `dns_records` jsonb | Reuse, but change the shape to match spec (see below). |
+| `dns_verified`, `ssl_status` | exist | Reuse. |
 
-Target:
-  autopilot-generate (nightly)  ->  tops every client's draft buffer to 4 ready posts
-  autopilot-tick (hourly)       ->  if client is due, grabs next ready post and publishes it
-  admin                          ->  watches dashboards, intervenes only on errors
-```
+`provision-site` already creates a Cloudflare custom hostname today, but it's bundled with subdomain allocation and uses `ssl.method = "http"` with `geo-sites.pages.dev` as the CNAME target. We'll split the custom-domain path into its own function per your spec, switch SSL to TXT-DV, and point CNAME at the SaaS fallback host.
 
-## 1. New edge function: `autopilot-generate` (nightly batch)
+## What gets built
 
-Runs once per night via pg_cron. For every client where `pipeline_stage = 'live'` (or `autopilot_enabled = true`):
+### 1. Edge function: `provision-custom-domain` (new)
 
-1. Count posts in `status IN ('draft','pending_review','scheduled')` for that client.
-2. If buffer < 4, pull the next `(4 - buffer)` queued topics and generate one post each, inserting as `status = 'scheduled'` with `scheduled_for = NULL` and `published_at = NULL`.
-3. Mark each topic `status = 'used'` only when the post insert succeeds.
-4. If the topic queue runs dry, internally invoke `generate-master-topics` with `replenish: true`, then continue.
-5. Per-client failures are logged, do not block other clients.
-6. Concurrency cap: process up to 5 clients in parallel to avoid AI gateway rate limits.
+POST `{ client_id, custom_domain }`. Admin-only (same JWT + role check pattern as `provision-site`).
 
-## 2. Rewrite `autopilot-tick` (hourly publisher)
+- Normalize + validate domain (reuse the regex from `provision-site`).
+- If `client_sites` row already has a `cloudflare_hostname_id` for a *different* domain, refuse with a clear error and tell the caller to disconnect first.
+- POST to Cloudflare custom_hostnames with `ssl: { method: "txt", type: "dv", settings: { min_tls_version: "1.2" } }`.
+- On success, update `client_sites`:
+  - `custom_domain`
+  - `cloudflare_hostname_id` = `result.id`
+  - `dns_records` = `{ cname: { name: <www or @>, value: "customers.mygeosite.com" }, ownership_txt: { name, value } }` (we'll derive `name` = `www` if the input starts with `www.`, else `@`)
+  - `dns_verified = false`, `ssl_status = "pending"`, `verify_attempts = 0`
+- Surface Cloudflare errors verbatim (already-claimed hostname, invalid hostname, etc.) with 4xx.
 
-Stops generating. New behavior per due client:
+### 2. Edge function: `verify-custom-domains` (rename/replace existing `verify-domains`)
 
-1. Look for the oldest post matching the canonical "ready to publish" query (see §4).
-2. If found: flip to `status = 'published'`, set `published_at = now()`, update `clients.last_autopublish_at`. Done.
-3. If none found (buffer miss): generate one post inline as a fallback so the client doesn't miss their slot, then publish it immediately. Log this as a `buffer_miss` event so we can tell if the nightly job is falling behind.
-4. Drop the auto-replenish call here — the nightly batch owns that responsibility.
+`verify-domains` already does almost exactly what the spec asks. I'll:
 
-"Due" check stays the same: `autopilot_enabled = true`, `autopilot_day = today_dow`, `last_autopublish_at` null or > 7 days ago.
+- Rename the function file path to `verify-custom-domains` to match the spec (and update the one caller in `DomainTab` "Re-check now").
+- Tighten the status mapping per spec:
+  - `result.status === "active"` → `dns_verified = true, ssl_status = "active"`.
+  - `pending_validation` / `pending_blocked` / `pending_*` → leave; bump `verify_attempts`.
+  - `deleted` or HTTP 404 → clear `cloudflare_hostname_id`, set `ssl_status = "failed"` (UI then offers retry).
+- Keep the existing transition side-effects (bump `pipeline_stage` to `site_live`, enqueue a `/` cache purge).
 
-## 3. Drop the human review gate (per user decision)
+### 3. Edge function: `remove-custom-hostname` (new)
 
-- Manual "Generate post" admin button still exists for ad-hoc use, but defaults new posts to `status = 'scheduled'` instead of `pending_review`.
-- The admin posts queue keeps both statuses visible so old `pending_review` rows aren't orphaned.
-- An admin can still edit any post before its publish slot lands.
+POST `{ client_id }`, admin-only. Looks up `cloudflare_hostname_id`, calls `DELETE …/custom_hostnames/{id}` (404 is treated as success), then clears `custom_domain`, `cloudflare_hostname_id`, `dns_records`, sets `dns_verified = false`, `ssl_status = null`, `verify_attempts = 0`.
 
-## 4. Canonical "ready to publish" query (watch item)
+### 4. Scheduled trigger (pg_cron)
 
-`status = 'scheduled'` here means "next in line, no specific timestamp" — slightly unconventional, since that status normally implies a future `scheduled_for`. To prevent regressions:
+Run `verify-custom-domains` every 15 min. We'll insert this via the data tool (uses anon key + function URL), not migrations, per the cron-jobs convention.
 
-- Every "ready to publish" lookup uses exactly: `status IN ('scheduled','pending_review') ORDER BY created_at ASC LIMIT 1`.
-- Do NOT add `scheduled_for IS NOT NULL` or `scheduled_for <= now()` to these queries.
-- Centralize the query in a tiny shared helper inside `supabase/functions/_shared/` so `autopilot-tick`, `autopilot-generate`, and any future caller use the same definition.
-- Add a code comment on the `posts.scheduled_for` column usage explaining: "null = ready on next due tick; non-null = reserved for future explicit scheduling, not used by autopilot today."
+### 5. `supabase/config.toml`
 
-## 5. Schedule the new cron job
+Add `[functions.provision-custom-domain] verify_jwt = true`, `[functions.remove-custom-hostname] verify_jwt = true`, `[functions.verify-custom-domains] verify_jwt = false` (cron-driven).
 
-Add a pg_cron entry for `autopilot-generate` at `0 6 * * *` UTC (≈ overnight US). Created via SQL insert (the schedule SQL contains the project URL + anon key, so it goes through the insert tool, not a migration).
+### 6. DomainTab rebuild (`src/components/admin/DomainTab.tsx`)
 
-## 6. Admin UI nudges (small, optional)
+The "Custom domain" card becomes a 3-state wizard. Subdomain card and cache-purge card stay as-is.
 
-On `ClientDetail.tsx` Posts tab:
-- "Drafts ready: N / 4" badge so admins can see the buffer at a glance.
-- "Last autopublish" timestamp + "Next slot: <day>" so it's obvious the system is alive.
+**State A — no `cloudflare_hostname_id`:**
+- Input "Your custom domain (e.g. www.yourdomain.com)" + "Connect Domain" button → `provision-custom-domain`. Loading spinner during call.
 
-Nothing else changes — no new buttons, no review modal.
+**State B — `cloudflare_hostname_id` set, `dns_verified = false`:**
+- Heading "Add these DNS records at your domain registrar".
+- Two-row DNS table (Type / Name / Value) with copy buttons:
+  - `CNAME` · `www` (or `@`) · `customers.mygeosite.com`
+  - `TXT` · `dns_records.ownership_txt.name` · `dns_records.ownership_txt.value`
+- Yellow "Waiting for DNS propagation" badge.
+- Note: "DNS changes can take up to 48 hours. We check every 15 minutes."
+- "Re-check now" button → `verify-custom-domains` with `{ client_id }`.
+- "Remove domain" link → `remove-custom-hostname`.
+
+**State C — `dns_verified = true`:**
+- Green "Active" badge + "Your site is live at: https://{domain}" clickable.
+- "Disconnect domain" link → `remove-custom-hostname` (then back to State A).
+
+Mirror the State B DNS instructions on the client-facing `MySite.tsx` (it already reads `dns_records`; just adjust to the new shape).
+
+## Technical notes
+
+- **No migration required.** The existing `cloudflare_hostname_id` column is a 1:1 substitute for the spec's `cf_custom_hostname_id`. If you want the rename anyway, say so and I'll add it (it touches 5 files).
+- **SSL method change to `txt`** is a behavior change for any in-flight pending hostnames. Existing rows continue to work — Cloudflare keeps their original SSL config — but new connects will need the TXT record instead of an HTTP-01 path. This matches your spec and avoids needing the agent's site to be reachable before issuance.
+- **CNAME target `customers.mygeosite.com`** assumes that hostname exists as a CNAME → `geo-sites.pages.dev` in the `mygeosite.com` zone, AND that Cloudflare for SaaS Fallback Origin is set to `geo-sites.pages.dev`. Both are setup steps you do once in the Cloudflare dashboard for the SaaS zone. The `dns_records` jsonb will document exactly what agents paste.
+- **Worker host header** (from prior thread): unrelated to this PR but still required for routing custom domains in the renderer Worker — we'll handle that separately.
+- **Secrets:** uses existing `CF_API_TOKEN` (already in secrets) and `CLOUDFLARE_ZONE_ID`. The current `provision-site` reads `CLOUDFLARE_API_TOKEN`; new functions will read `CF_API_TOKEN` per spec. Both are already configured.
+- **RLS:** no policy changes — `client_sites` already lets admins manage and clients read their own row.
 
 ## Files touched
 
-- `supabase/functions/autopilot-generate/index.ts` — new
-- `supabase/functions/_shared/ready-posts.ts` — new (shared "ready to publish" query)
-- `supabase/functions/autopilot-tick/index.ts` — strip generation, add publisher logic + buffer_miss fallback
-- `supabase/functions/generate-post/index.ts` — default new posts to `scheduled`
-- `supabase/config.toml` — register `autopilot-generate` with `verify_jwt = false`
-- pg_cron — new nightly schedule (via SQL insert)
-- `src/pages/admin/ClientDetail.tsx` — buffer badge + next-slot label
-
-## Out of scope / scaling notes
-
-- **Replenish thundering herd**: if many clients hit an empty topic queue on the same night, `autopilot-generate` will fire several `generate-master-topics` re-enumeration calls in parallel. Fine at 5 concurrent clients today; revisit when scaling past ~50 — likely fix is a per-client lock or a queue.
-- Publishing at a specific time of day (currently "any tick on the right weekday wins"). Hour-of-day can be added later via `autopilot_hour` column.
-- Per-client overrides for buffer size (hardcoded to 4).
-- Notification emails on `buffer_miss` (logged for now, no alerting).
-- Backfill: existing clients with no buffer will get topped up on the first nightly run.
+- New: `supabase/functions/provision-custom-domain/index.ts`
+- New: `supabase/functions/remove-custom-hostname/index.ts`
+- New (renamed from `verify-domains`): `supabase/functions/verify-custom-domains/index.ts`; delete old
+- Edited: `supabase/config.toml`
+- Edited: `src/components/admin/DomainTab.tsx`
+- Edited: `src/pages/MySite.tsx` (DNS-record shape only)
+- Data op (cron): `cron.schedule('verify-custom-domains-15m', '*/15 * * * *', …)` via insert tool
