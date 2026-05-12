@@ -21,8 +21,23 @@ import { toast } from "sonner";
 
 export default function AdminPostEditor() {
   const { postId } = useParams<{ postId: string }>();
+  const navigate = useNavigate();
   const [post, setPost] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!post) return;
+    setDeleting(true);
+    const { error } = await supabase.from("posts").delete().eq("id", post.id);
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Post deleted");
+    navigate("/admin/posts");
+  };
 
   useEffect(() => {
     if (!postId) return;
