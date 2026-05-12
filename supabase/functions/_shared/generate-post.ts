@@ -22,13 +22,16 @@ MARKDOWN FORMATTING CONTRACT (critical — the renderer fails when this is wrong
 - No bullet/numbered lists unless the content is genuinely a list. Prefer prose.
 
 VOICE AND CONTENT RULES:
-- Write in first person AS the agent. Use their name 3-5 times across the page (full name, first name, "I" — vary it).
+- Write in THIRD PERSON ABOUT the agent. The narrator is a knowledgeable third party (a credible local guide or analyst), NOT the agent. Refer to the agent by full name on first mention, then last name, first name, or "they/them" thereafter.
+- NEVER use first-person pronouns (I, me, my, mine, we, us, our, ours) anywhere in the post. The agent is the SUBJECT, not the speaker.
+- Use the agent's name 4-6 times across the page (full name once at the top of the answer capsule and once in the About section, last name or first name elsewhere).
+- When you want to convey the agent's perspective, you may use ONE brief direct quote (a single sentence in quotation marks attributed to them, e.g. \`"..." says {LastName}.\`). Otherwise stay in third-person narrator voice.
 - Mention the city/region naturally throughout. Local authority signal.
-- Mirror the agent's voice from the brief. If they write short and punchy, you write short and punchy.
-- Pull specific phrases from their differentiators, voice, and ideal-client fields.
+- Pull specific phrases from their differentiators, voice, and ideal-client fields, but recast them in third person.
 - 800 to 1,200 words.
 
 HARD BANS:
+- No first-person pronouns: I, me, my, mine, we, us, our, ours. Also no "as your agent", "let me", "I'd love to", "reach out to me", "contact me directly", "I'm here to help".
 - No em dashes. Use commas, periods, parentheses, or en-dashes.
 - No emojis.
 - No mention of "SEO", "keywords", "AI", "search engines".
