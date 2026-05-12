@@ -1,32 +1,36 @@
-## Fix 1 — Add "Delete post" to the admin Post Editor
+## Fix — generated posts must be third-person ABOUT the agent, not first-person AS the agent
 
-`src/pages/admin/PostEditor.tsx` has Save and Save & Publish but no delete. RLS already allows admins to delete `posts` (see `Admins manage posts` ALL policy), so no migration needed.
+The current `SYSTEM_PROMPT` and user prompt in `supabase/functions/_shared/generate-post.ts` instruct the model to "write in first person AS the agent" and to fill an answer capsule that uses "I". That's wrong for GEO citation: AI assistants cite third-party authority signals more readily than self-promotional first-person posts, and the format spec the user provided is explicit ("[Client Name], a [city]-based realtor with [X] years of experience, recommends [specific answer]").
 
-Changes:
-- Add a destructive `Delete post` button on the right side of the action row (separated from Save / Save & Publish).
-- Click → `AlertDialog` confirm ("Delete this post? This cannot be undone.").
-- On confirm → `supabase.from("posts").delete().eq("id", post.id)`, toast result, navigate back to `/admin/posts` via `useNavigate`.
-- Use existing `Button` `variant="destructive"` (or muted ghost styled with ink text — match the brand bible: no rounded corners, no shadows). Keep it visually deprioritized from Save.
+### Changes to `supabase/functions/_shared/generate-post.ts`
 
-## Fix 2 — "Client" column blank in Posts Queue
+1. **System prompt rewrite** — replace the voice rules:
+   - Remove: "Write in first person AS the agent. Use I/me/my."
+   - Add: "Write in third person ABOUT the agent. Refer to them by full name on first mention, then last name, first name, or 'they' on subsequent mentions. Never use I, me, my, we, our, or us. The narrator is a knowledgeable third party (think: a credible local guide or analyst) describing what this specific agent recommends and why."
+   - Update the agent-name guidance: "Use the agent's name 4-6 times across the page (full name once at the top of the answer capsule and About section, then last name or first name elsewhere)."
+   - Replace "Mirror the agent's voice from the brief" with: "When quoting the agent's perspective or recommendation, you may use a brief direct quote (one sentence in quotation marks). Otherwise stay in third-person narrator voice."
 
-`src/pages/admin/PostsQueue.tsx` line 13 selects `clients!inner(business_name, owner_user_id)` and renders `p.clients?.business_name ?? "—"`. The test client (and most clients) won't have `business_name` populated — that field is optional on the `clients` table and isn't set during the intake wizard. The agent's actual display name lives in either `profiles.full_name` (joined via `clients.owner_user_id`) or `client_sites.agent_display_name`.
+2. **Answer capsule template rewrite** in `buildUserPrompt`:
+   - Old: implicit first-person via "Write in first person AS the agent"
+   - New explicit third-person template:
+     ```
+     "{Agent Name}, a {city}-based real estate agent with {years} years of experience at {brokerage}, recommends {specific answer}. {One sentence on WHY in third person — concrete reason.} {Optional third sentence with a specific data point, named neighborhood, price band, or school district.}"
+     ```
 
-Changes (display-only, no schema change):
-- Update the select to pull a usable name with fallbacks:
-  ```
-  .select(`
-    id, title, status, created_at, client_id,
-    clients!inner(
-      business_name,
-      brokerage,
-      owner_user_id,
-      profiles:owner_user_id ( full_name, email ),
-      client_sites ( agent_display_name )
-    )
-  `)
-  ```
-- Render with fallback chain: `agent_display_name` → `full_name` → `business_name` → `brokerage` → `email` → `—`.
-- Pull that into a small `clientLabel(p)` helper at the top of the file.
+3. **About section rewrite**:
+   - Currently positioned as the agent talking about themselves with a "How to reach me" CTA stripped out.
+   - New: `## About {Agent Name}` is third-person bio (2-3 sentences). Same E-E-A-T signals (years, brokerage, geographic specialization, ideal client). Then the contact block on its own lines as before.
 
-No DB migration. No edge function changes. Two files touched: `PostEditor.tsx`, `PostsQueue.tsx`.
+4. **Banned-language list update**:
+   - Add to the hard-bans: "I", "me", "my", "we", "our", "us" (when referring to the agent or their business). Also ban "as your agent", "let me", "I'd love to", "reach out to me", "contact me directly", "I am here to help".
+   - Keep all existing bans (em dashes, emojis, SEO/keywords/AI, "in today's market", etc.).
+
+5. **Re-emphasize at the bottom of the user prompt**: "Third-person only. The narrator is NOT {Agent Name}. Never write 'I', 'me', 'my', 'we', or 'our'. Refer to {Agent Name} by name and 'they/them'."
+
+### Files touched
+
+- `supabase/functions/_shared/generate-post.ts` — system prompt + `buildUserPrompt`. One file. No DB migration. No frontend changes. No other edge functions need editing because `generate-post`, `autopilot-generate`, and `autopilot-tick` already share this single source.
+
+### Backfill
+
+The existing first-person posts in the DB will not be auto-rewritten. Delete them from the admin Post Editor (the new Delete button you have now) and regenerate from the topic queue.
