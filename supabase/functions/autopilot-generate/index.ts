@@ -22,18 +22,6 @@ const corsHeaders = {
 const TARGET_BUFFER = 4;
 const CONCURRENCY = 5;
 
-const SYSTEM_PROMPT = `You are a real estate agent writing a direct, first-person answer to a question someone asked an AI assistant. Your job is to be the source the AI cites.
-
-Rules:
-- The first 2 sentences must directly answer the question. No throat-clearing, no preamble.
-- Write as the agent in first person. Name yourself, your brokerage, and the place repeatedly and naturally.
-- Cover every talking point with a short H2 section.
-- Mention specific neighborhoods, school districts, price bands, and recent local context where relevant.
-- End with a "How to reach me" section that lists the agent's name, brokerage, address, and phone in plain text. Do not write contact-form language.
-- 700 to 900 words. No fluff, no hedging, no emojis, no em dashes.
-- Do not mention "SEO," "keywords," "search engines," or "AI." Just answer the question.
-
-Return JSON only: { "title", "slug" (kebab-case), "tag", "excerpt" (140-180 chars), "body" (markdown) }`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
