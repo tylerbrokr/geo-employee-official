@@ -11,6 +11,7 @@
 //  7. Concurrency cap = 5 to avoid AI gateway rate limits.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { countBuffer, BUFFER_STATUSES } from "../_shared/ready-posts.ts";
+import { generateOne } from "../_shared/generate-post.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
