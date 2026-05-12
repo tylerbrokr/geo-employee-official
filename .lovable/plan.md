@@ -1,55 +1,32 @@
-## What's wrong
+## Fix 1 — Add "Delete post" to the admin Post Editor
 
-Two problems combined to produce that screenshot:
+`src/pages/admin/PostEditor.tsx` has Save and Save & Publish but no delete. RLS already allows admins to delete `posts` (see `Admins manage posts` ALL policy), so no migration needed.
 
-1. **The AI prompt is wrong for GEO.** Today's `SYSTEM_PROMPT` (in `supabase/functions/_shared/generate-post.ts` and the duplicate in `supabase/functions/generate-post/index.ts`) tells the model to write a generic first-person blog post with H2s for "talking points" and a "How to reach me" section. It does not enforce the GEO Answer Page structure (answer capsule, question-shaped H2s, self-contained paragraphs, About section, E-E-A-T signals). It also doesn't enforce hard line breaks between sections, which is why `##` shows up mid-paragraph in the screenshot ("Hennepin County. ## Why work with…") — the model returned headers without surrounding `\n\n`.
+Changes:
+- Add a destructive `Delete post` button on the right side of the action row (separated from Save / Save & Publish).
+- Click → `AlertDialog` confirm ("Delete this post? This cannot be undone.").
+- On confirm → `supabase.from("posts").delete().eq("id", post.id)`, toast result, navigate back to `/admin/posts` via `useNavigate`.
+- Use existing `Button` `variant="destructive"` (or muted ghost styled with ink text — match the brand bible: no rounded corners, no shadows). Keep it visually deprioritized from Save.
 
-2. **The renderer is treating `body` as plain text.** The published site (`geo-sites.pages.dev`, separate Cloudflare Pages project) is rendering `post.body` without a markdown parser. Even a perfectly formatted `##` line will appear inline. This project does not contain that renderer, so this plan only fixes the generation side. The renderer fix needs to happen in the `geo-sites` repo (add `react-markdown` or equivalent to the blog post route) and is called out as a follow-up.
+## Fix 2 — "Client" column blank in Posts Queue
 
-## Plan
+`src/pages/admin/PostsQueue.tsx` line 13 selects `clients!inner(business_name, owner_user_id)` and renders `p.clients?.business_name ?? "—"`. The test client (and most clients) won't have `business_name` populated — that field is optional on the `clients` table and isn't set during the intake wizard. The agent's actual display name lives in either `profiles.full_name` (joined via `clients.owner_user_id`) or `client_sites.agent_display_name`.
 
-### 1. Rewrite the GEO system prompt
+Changes (display-only, no schema change):
+- Update the select to pull a usable name with fallbacks:
+  ```
+  .select(`
+    id, title, status, created_at, client_id,
+    clients!inner(
+      business_name,
+      brokerage,
+      owner_user_id,
+      profiles:owner_user_id ( full_name, email ),
+      client_sites ( agent_display_name )
+    )
+  `)
+  ```
+- Render with fallback chain: `agent_display_name` → `full_name` → `business_name` → `brokerage` → `email` → `—`.
+- Pull that into a small `clientLabel(p)` helper at the top of the file.
 
-Replace `SYSTEM_PROMPT` in `supabase/functions/_shared/generate-post.ts` to encode the GEO Answer Page contract:
-
-- Title is always a question.
-- First 2-3 sentences = **Answer Capsule**: name the agent, city, years of experience, give the specific recommendation. No throat-clearing.
-- Every H2 is a question someone would naturally ask next (not a topic label).
-- Each section is 2-3 self-contained paragraphs that read correctly in isolation.
-- Mandatory final `## About {Agent Name}` section with E-E-A-T signals (years, transactions, geographic + niche specialization).
-- Use the agent's name 3-5 times across the post; mention the city/region naturally.
-- 800-1,200 words.
-- **Formatting contract** (this is what fixes the inline `##`): every `#`/`##` must be preceded by a blank line and followed by a blank line; paragraphs separated by `\n\n`; no inline headers; no `---` dividers inside a section.
-- Hard bans: em dashes, emojis, "navigating", "in today's market", "your real estate journey", "leverage" as a verb, any mention of SEO/keywords/AI.
-- Voice rules: short sentences, periods, sound like the agent, pull from their differentiators/voice fields.
-
-### 2. Rewrite the user prompt
-
-Same file. Change `buildUserPrompt`-style block to:
-
-- Re-state the title as the question to answer.
-- Provide an explicit **answer capsule template** the model fills in: `"{Agent Name}, a {City}-based real estate agent with {years} years of experience, recommends {specific answer}. {One-sentence reason.}"`
-- Pass `talking_points` and `h2s` as **suggested follow-up questions** — instruct the model to rewrite each as a natural question header before answering.
-- Pass voice/differentiators/ideal client and tell the model to mirror sentence structure.
-- Provide the NAP block but for the **About section**, not a "How to reach me" CTA section. Drop the "How to reach me" naming; replace with `## About {Agent Name}` followed by credentials, then a separate trailing line with name, brokerage, address, phone in plain text.
-- Re-emphasize the markdown formatting contract at the bottom of the user prompt (blank line before/after every `##`).
-
-### 3. Sync the duplicate
-
-`supabase/functions/generate-post/index.ts` has its own copy of `SYSTEM_PROMPT` and `buildUserPrompt`. Replace both with imports from `_shared/generate-post.ts` so there is one source of truth and the standalone "Generate one post" admin button uses the same logic as autopilot. (The `generateOne` helper already exists and inserts a row; the `/generate-post` function can just call it and return the inserted post.)
-
-### 4. Backfill / cleanup
-
-- Do **not** auto-rewrite existing posts. Add a note in the response telling the user to delete or regenerate the bad post manually from the admin queue.
-- No DB migration. No schema change. No new secrets.
-
-### 5. Follow-up (not in this PR, flagged for the user)
-
-The `geo-sites` Pages renderer needs a markdown parser on the blog post route. Until that ships, even a well-formatted post will render as plain text. Suggest `react-markdown` + `remark-gfm` with a small typographic stylesheet. I can do that work in the renderer repo when you're ready.
-
-## Files touched
-
-- `supabase/functions/_shared/generate-post.ts` — new SYSTEM_PROMPT + user prompt builder
-- `supabase/functions/generate-post/index.ts` — delete local copies, call shared `generateOne`
-
-No migrations. No frontend changes. No config changes.
+No DB migration. No edge function changes. Two files touched: `PostEditor.tsx`, `PostsQueue.tsx`.
