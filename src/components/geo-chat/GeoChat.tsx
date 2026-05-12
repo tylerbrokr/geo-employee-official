@@ -772,3 +772,78 @@ function formatAnswer(value: any, emptyLabel?: string): string {
 }
 
 function delay(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+
+// Renders either a "set a password" form (if the user signed in via magic link
+// and has no password identity yet) or a direct "take me to my portal" button.
+function FinishCta() {
+  const [needsPassword, setNeedsPassword] = useState<boolean | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const identities = data.user?.identities ?? [];
+      const hasEmailIdentity = identities.some((i: any) => i.provider === "email");
+      setNeedsPassword(!hasEmailIdentity);
+    });
+  }, []);
+
+  if (needsPassword === null) return null;
+
+  if (!needsPassword) {
+    return (
+      <button
+        onClick={() => window.location.assign("/portal")}
+        className="bg-ink text-white px-5 py-2.5 text-[13px] font-medium hover:opacity-85 transition-opacity"
+      >
+        Take me to my portal
+      </button>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) { toast.error("Use at least 8 characters"); return; }
+    if (password !== confirm) { toast.error("Passwords don't match"); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Password saved");
+    window.location.assign("/portal");
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-3 w-full max-w-[360px]">
+      <p className="text-[13px] text-ink/70 leading-snug">
+        Set a password so you can sign back in any time.
+      </p>
+      <input
+        type="password"
+        placeholder="New password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        minLength={8}
+        required
+        className="w-full h-10 px-3 border border-ink/[0.16] bg-white text-[14px] text-ink focus:outline-none focus:border-ink/[0.4]"
+      />
+      <input
+        type="password"
+        placeholder="Confirm password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        minLength={8}
+        required
+        className="w-full h-10 px-3 border border-ink/[0.16] bg-white text-[14px] text-ink focus:outline-none focus:border-ink/[0.4]"
+      />
+      <button
+        type="submit"
+        disabled={busy}
+        className="bg-ink text-white px-5 py-2.5 text-[13px] font-medium hover:opacity-85 transition-opacity disabled:opacity-50"
+      >
+        {busy ? "Saving." : "Save and continue"}
+      </button>
+    </form>
+  );
+}
