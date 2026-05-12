@@ -19,7 +19,7 @@ interface Props {
 export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props) {
   const [topicCount, setTopicCount] = useState<number | null>(null);
   const [postCount, setPostCount] = useState<number | null>(null);
-  const [siteRow, setSiteRow] = useState<{ dns_verified: boolean } | null>(null);
+  const [siteRow, setSiteRow] = useState<{ dns_verified: boolean; subdomain: string | null; custom_domain: string | null } | null>(null);
   const [crOpen, setCrOpen] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props
       const [{ count: tc }, { count: pc }, { data: sr }] = await Promise.all([
         supabase.from("client_topics").select("id", { count: "exact", head: true }).eq("client_id", client.id),
         supabase.from("posts").select("id", { count: "exact", head: true }).eq("client_id", client.id),
-        supabase.from("client_sites").select("dns_verified").eq("client_id", client.id).maybeSingle(),
+        supabase.from("client_sites").select("dns_verified, subdomain, custom_domain").eq("client_id", client.id).maybeSingle(),
       ]);
       setTopicCount(tc ?? 0);
       setPostCount(pc ?? 0);
@@ -37,7 +37,7 @@ export function SiteBuildStatus({ client, variant = "full", slimMessage }: Props
   }, [client?.id]);
 
   const stage = (client as any)?.pipeline_stage ?? "draft";
-  const isLive = client?.site_status === "live";
+  const isLive = !!(siteRow && (siteRow.subdomain || (siteRow.custom_domain && siteRow.dns_verified)));
 
   // Compute step states
   const intakeDone = stage === "intake_complete" || stage === "in_production" || stage === "live";

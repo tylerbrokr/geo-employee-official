@@ -10,7 +10,7 @@ import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { client } = useClient();
+  const { client, isLive, liveUrl } = useClient();
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
@@ -51,15 +51,15 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {client?.site_status === "live" ? (
+        {isLive ? (
           <div className="findr-card-elevated mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <p className="section-label mb-2">YOUR GEO SITE</p>
-                <p className="text-base font-semibold text-primary">{client?.site_url ?? "Not yet provisioned"}</p>
-                {client?.site_url && (
+                <p className="text-base font-semibold text-primary">{liveUrl}</p>
+                {liveUrl && (
                   <div className="flex gap-3 mt-4">
-                    <Button variant="default" size="sm" asChild><a href={client.site_url} target="_blank" rel="noreferrer">Visit Site</a></Button>
+                    <Button variant="default" size="sm" asChild><a href={liveUrl} target="_blank" rel="noreferrer">Visit Site</a></Button>
                   </div>
                 )}
               </div>
@@ -68,7 +68,7 @@ export default function Dashboard() {
                   <span className="w-3 h-3 rounded-full bg-emerald emerald-pulse" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium capitalize">{client?.site_status}</p>
+                  <p className="text-sm font-medium">Live</p>
                   <p className="text-xs text-muted-foreground">Auto-publishing</p>
                 </div>
               </div>
