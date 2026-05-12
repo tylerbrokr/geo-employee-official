@@ -35,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/portal" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
 
             {/* Onboarding (client) */}
