@@ -10,7 +10,7 @@ import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { client } = useClient();
+  const { client, isLive, liveUrl } = useClient();
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
