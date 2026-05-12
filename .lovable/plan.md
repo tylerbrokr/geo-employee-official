@@ -1,94 +1,55 @@
-# Automate custom domain provisioning
+## What's wrong
 
-## Important reuse decision
+Two problems combined to produce that screenshot:
 
-The schema already has equivalents for almost everything in your spec:
+1. **The AI prompt is wrong for GEO.** Today's `SYSTEM_PROMPT` (in `supabase/functions/_shared/generate-post.ts` and the duplicate in `supabase/functions/generate-post/index.ts`) tells the model to write a generic first-person blog post with H2s for "talking points" and a "How to reach me" section. It does not enforce the GEO Answer Page structure (answer capsule, question-shaped H2s, self-contained paragraphs, About section, E-E-A-T signals). It also doesn't enforce hard line breaks between sections, which is why `##` shows up mid-paragraph in the screenshot ("Hennepin County. ## Why work with…") — the model returned headers without surrounding `\n\n`.
 
-| Spec name | Existing column | Action |
-|---|---|---|
-| `cf_custom_hostname_id` | `cloudflare_hostname_id` | **Reuse existing** — no migration needed. I'll keep the current name (it's already wired into `verify-domains`, `provision-site`, and the types file) so we don't have to rename in 4 places. |
-| `dns_records` | `dns_records` jsonb | Reuse, but change the shape to match spec (see below). |
-| `dns_verified`, `ssl_status` | exist | Reuse. |
+2. **The renderer is treating `body` as plain text.** The published site (`geo-sites.pages.dev`, separate Cloudflare Pages project) is rendering `post.body` without a markdown parser. Even a perfectly formatted `##` line will appear inline. This project does not contain that renderer, so this plan only fixes the generation side. The renderer fix needs to happen in the `geo-sites` repo (add `react-markdown` or equivalent to the blog post route) and is called out as a follow-up.
 
-`provision-site` already creates a Cloudflare custom hostname today, but it's bundled with subdomain allocation and uses `ssl.method = "http"` with `geo-sites.pages.dev` as the CNAME target. We'll split the custom-domain path into its own function per your spec, switch SSL to TXT-DV, and point CNAME at the SaaS fallback host.
+## Plan
 
-## What gets built
+### 1. Rewrite the GEO system prompt
 
-### 1. Edge function: `provision-custom-domain` (new)
+Replace `SYSTEM_PROMPT` in `supabase/functions/_shared/generate-post.ts` to encode the GEO Answer Page contract:
 
-POST `{ client_id, custom_domain }`. Admin-only (same JWT + role check pattern as `provision-site`).
+- Title is always a question.
+- First 2-3 sentences = **Answer Capsule**: name the agent, city, years of experience, give the specific recommendation. No throat-clearing.
+- Every H2 is a question someone would naturally ask next (not a topic label).
+- Each section is 2-3 self-contained paragraphs that read correctly in isolation.
+- Mandatory final `## About {Agent Name}` section with E-E-A-T signals (years, transactions, geographic + niche specialization).
+- Use the agent's name 3-5 times across the post; mention the city/region naturally.
+- 800-1,200 words.
+- **Formatting contract** (this is what fixes the inline `##`): every `#`/`##` must be preceded by a blank line and followed by a blank line; paragraphs separated by `\n\n`; no inline headers; no `---` dividers inside a section.
+- Hard bans: em dashes, emojis, "navigating", "in today's market", "your real estate journey", "leverage" as a verb, any mention of SEO/keywords/AI.
+- Voice rules: short sentences, periods, sound like the agent, pull from their differentiators/voice fields.
 
-- Normalize + validate domain (reuse the regex from `provision-site`).
-- If `client_sites` row already has a `cloudflare_hostname_id` for a *different* domain, refuse with a clear error and tell the caller to disconnect first.
-- POST to Cloudflare custom_hostnames with `ssl: { method: "txt", type: "dv", settings: { min_tls_version: "1.2" } }`.
-- On success, update `client_sites`:
-  - `custom_domain`
-  - `cloudflare_hostname_id` = `result.id`
-  - `dns_records` = `{ cname: { name: <www or @>, value: "customers.mygeosite.com" }, ownership_txt: { name, value } }` (we'll derive `name` = `www` if the input starts with `www.`, else `@`)
-  - `dns_verified = false`, `ssl_status = "pending"`, `verify_attempts = 0`
-- Surface Cloudflare errors verbatim (already-claimed hostname, invalid hostname, etc.) with 4xx.
+### 2. Rewrite the user prompt
 
-### 2. Edge function: `verify-custom-domains` (rename/replace existing `verify-domains`)
+Same file. Change `buildUserPrompt`-style block to:
 
-`verify-domains` already does almost exactly what the spec asks. I'll:
+- Re-state the title as the question to answer.
+- Provide an explicit **answer capsule template** the model fills in: `"{Agent Name}, a {City}-based real estate agent with {years} years of experience, recommends {specific answer}. {One-sentence reason.}"`
+- Pass `talking_points` and `h2s` as **suggested follow-up questions** — instruct the model to rewrite each as a natural question header before answering.
+- Pass voice/differentiators/ideal client and tell the model to mirror sentence structure.
+- Provide the NAP block but for the **About section**, not a "How to reach me" CTA section. Drop the "How to reach me" naming; replace with `## About {Agent Name}` followed by credentials, then a separate trailing line with name, brokerage, address, phone in plain text.
+- Re-emphasize the markdown formatting contract at the bottom of the user prompt (blank line before/after every `##`).
 
-- Rename the function file path to `verify-custom-domains` to match the spec (and update the one caller in `DomainTab` "Re-check now").
-- Tighten the status mapping per spec:
-  - `result.status === "active"` → `dns_verified = true, ssl_status = "active"`.
-  - `pending_validation` / `pending_blocked` / `pending_*` → leave; bump `verify_attempts`.
-  - `deleted` or HTTP 404 → clear `cloudflare_hostname_id`, set `ssl_status = "failed"` (UI then offers retry).
-- Keep the existing transition side-effects (bump `pipeline_stage` to `site_live`, enqueue a `/` cache purge).
+### 3. Sync the duplicate
 
-### 3. Edge function: `remove-custom-hostname` (new)
+`supabase/functions/generate-post/index.ts` has its own copy of `SYSTEM_PROMPT` and `buildUserPrompt`. Replace both with imports from `_shared/generate-post.ts` so there is one source of truth and the standalone "Generate one post" admin button uses the same logic as autopilot. (The `generateOne` helper already exists and inserts a row; the `/generate-post` function can just call it and return the inserted post.)
 
-POST `{ client_id }`, admin-only. Looks up `cloudflare_hostname_id`, calls `DELETE …/custom_hostnames/{id}` (404 is treated as success), then clears `custom_domain`, `cloudflare_hostname_id`, `dns_records`, sets `dns_verified = false`, `ssl_status = null`, `verify_attempts = 0`.
+### 4. Backfill / cleanup
 
-### 4. Scheduled trigger (pg_cron)
+- Do **not** auto-rewrite existing posts. Add a note in the response telling the user to delete or regenerate the bad post manually from the admin queue.
+- No DB migration. No schema change. No new secrets.
 
-Run `verify-custom-domains` every 15 min. We'll insert this via the data tool (uses anon key + function URL), not migrations, per the cron-jobs convention.
+### 5. Follow-up (not in this PR, flagged for the user)
 
-### 5. `supabase/config.toml`
-
-Add `[functions.provision-custom-domain] verify_jwt = true`, `[functions.remove-custom-hostname] verify_jwt = true`, `[functions.verify-custom-domains] verify_jwt = false` (cron-driven).
-
-### 6. DomainTab rebuild (`src/components/admin/DomainTab.tsx`)
-
-The "Custom domain" card becomes a 3-state wizard. Subdomain card and cache-purge card stay as-is.
-
-**State A — no `cloudflare_hostname_id`:**
-- Input "Your custom domain (e.g. www.yourdomain.com)" + "Connect Domain" button → `provision-custom-domain`. Loading spinner during call.
-
-**State B — `cloudflare_hostname_id` set, `dns_verified = false`:**
-- Heading "Add these DNS records at your domain registrar".
-- Two-row DNS table (Type / Name / Value) with copy buttons:
-  - `CNAME` · `www` (or `@`) · `customers.mygeosite.com`
-  - `TXT` · `dns_records.ownership_txt.name` · `dns_records.ownership_txt.value`
-- Yellow "Waiting for DNS propagation" badge.
-- Note: "DNS changes can take up to 48 hours. We check every 15 minutes."
-- "Re-check now" button → `verify-custom-domains` with `{ client_id }`.
-- "Remove domain" link → `remove-custom-hostname`.
-
-**State C — `dns_verified = true`:**
-- Green "Active" badge + "Your site is live at: https://{domain}" clickable.
-- "Disconnect domain" link → `remove-custom-hostname` (then back to State A).
-
-Mirror the State B DNS instructions on the client-facing `MySite.tsx` (it already reads `dns_records`; just adjust to the new shape).
-
-## Technical notes
-
-- **No migration required.** The existing `cloudflare_hostname_id` column is a 1:1 substitute for the spec's `cf_custom_hostname_id`. If you want the rename anyway, say so and I'll add it (it touches 5 files).
-- **SSL method change to `txt`** is a behavior change for any in-flight pending hostnames. Existing rows continue to work — Cloudflare keeps their original SSL config — but new connects will need the TXT record instead of an HTTP-01 path. This matches your spec and avoids needing the agent's site to be reachable before issuance.
-- **CNAME target `customers.mygeosite.com`** assumes that hostname exists as a CNAME → `geo-sites.pages.dev` in the `mygeosite.com` zone, AND that Cloudflare for SaaS Fallback Origin is set to `geo-sites.pages.dev`. Both are setup steps you do once in the Cloudflare dashboard for the SaaS zone. The `dns_records` jsonb will document exactly what agents paste.
-- **Worker host header** (from prior thread): unrelated to this PR but still required for routing custom domains in the renderer Worker — we'll handle that separately.
-- **Secrets:** uses existing `CF_API_TOKEN` (already in secrets) and `CLOUDFLARE_ZONE_ID`. The current `provision-site` reads `CLOUDFLARE_API_TOKEN`; new functions will read `CF_API_TOKEN` per spec. Both are already configured.
-- **RLS:** no policy changes — `client_sites` already lets admins manage and clients read their own row.
+The `geo-sites` Pages renderer needs a markdown parser on the blog post route. Until that ships, even a well-formatted post will render as plain text. Suggest `react-markdown` + `remark-gfm` with a small typographic stylesheet. I can do that work in the renderer repo when you're ready.
 
 ## Files touched
 
-- New: `supabase/functions/provision-custom-domain/index.ts`
-- New: `supabase/functions/remove-custom-hostname/index.ts`
-- New (renamed from `verify-domains`): `supabase/functions/verify-custom-domains/index.ts`; delete old
-- Edited: `supabase/config.toml`
-- Edited: `src/components/admin/DomainTab.tsx`
-- Edited: `src/pages/MySite.tsx` (DNS-record shape only)
-- Data op (cron): `cron.schedule('verify-custom-domains-15m', '*/15 * * * *', …)` via insert tool
+- `supabase/functions/_shared/generate-post.ts` — new SYSTEM_PROMPT + user prompt builder
+- `supabase/functions/generate-post/index.ts` — delete local copies, call shared `generateOne`
+
+No migrations. No frontend changes. No config changes.
