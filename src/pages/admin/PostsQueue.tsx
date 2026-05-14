@@ -27,7 +27,7 @@ export default function AdminPostsQueue() {
       const { data } = await supabase
         .from("posts")
         .select(`
-          id, title, status, created_at, client_id,
+          id, title, status, created_at, scheduled_for, published_at, client_id,
           clients!inner(
             business_name,
             brokerage,
