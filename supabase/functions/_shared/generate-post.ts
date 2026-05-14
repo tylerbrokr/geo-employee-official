@@ -50,29 +50,44 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
 
   const userPrompt = buildUserPrompt({ topic, client, market, profile });
 
-  const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!aiRes.ok) throw new Error(`AI error: ${await aiRes.text()}`);
-  const aiJson = await aiRes.json();
-  const content = aiJson.choices?.[0]?.message?.content ?? "{}";
-  let parsed: any;
-  try { parsed = JSON.parse(content); } catch { parsed = {}; }
+  // Try AI generation up to 2 times. Body must be substantive (>=400 chars, >=1 H2).
+  let parsed: any = null;
+  let lastErr = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!aiRes.ok) { lastErr = `AI HTTP ${aiRes.status}: ${await aiRes.text()}`; continue; }
+    const aiJson = await aiRes.json();
+    const content = aiJson.choices?.[0]?.message?.content ?? "";
+    let candidate: any = null;
+    try { candidate = JSON.parse(content); } catch { lastErr = "AI returned non-JSON"; continue; }
+    const body = typeof candidate?.body === "string" ? candidate.body : "";
+    if (body.length < 400 || !/\n##\s+/.test(body)) {
+      lastErr = `AI body too short or missing H2 (len=${body.length})`;
+      continue;
+    }
+    parsed = candidate;
+    break;
+  }
+  if (!parsed) throw new Error(`generate failed after retries: ${lastErr}`);
 
   const title = parsed.title ?? topic.title;
   const slug = (parsed.slug ?? title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).slice(0, 80);
-  const body = parsed.body ?? "";
+  const body = parsed.body;
   const tag = parsed.tag ?? "Local Discovery";
   const excerpt = parsed.excerpt ?? null;
+
+  const scheduled_for = await computeNextScheduledFor(admin, client_id, client);
 
   const { data: inserted, error: insErr } = await admin.from("posts").insert({
     client_id,
@@ -80,11 +95,48 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
     title, slug, body, tag, excerpt,
     target_keyword: topic.primary_keyword ?? title,
     status: "scheduled",
+    scheduled_for,
   }).select().single();
   if (insErr) throw insErr;
 
   await admin.from("client_topics").update({ status: "used", used_at: new Date().toISOString() }).eq("id", topic.id);
   return inserted;
+}
+
+// Next publish slot for a client: pick the next occurrence of autopilot_day strictly after
+// max(now, last_autopublish_at, latest existing scheduled_for for this client) + 7 days when chaining.
+async function computeNextScheduledFor(admin: any, client_id: string, client: any): Promise<string | null> {
+  const dow = client?.autopilot_day;
+  if (dow === null || dow === undefined) return null;
+
+  const { data: latest } = await admin
+    .from("posts")
+    .select("scheduled_for")
+    .eq("client_id", client_id)
+    .eq("status", "scheduled")
+    .not("scheduled_for", "is", null)
+    .order("scheduled_for", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const now = new Date();
+  const lastPub = client?.last_autopublish_at ? new Date(client.last_autopublish_at) : null;
+  const latestSched = latest?.scheduled_for ? new Date(latest.scheduled_for) : null;
+
+  if (latestSched) {
+    // Chain: next slot is +7 days from latest scheduled.
+    const next = new Date(latestSched.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return next.toISOString();
+  }
+
+  // First scheduled post: next occurrence of autopilot_day after max(now, lastPub).
+  const anchor = lastPub && lastPub > now ? lastPub : now;
+  const next = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate(), 14, 0, 0));
+  // Walk forward until we hit autopilot_day and it's strictly after anchor.
+  while (next.getUTCDay() !== dow || next <= anchor) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  return next.toISOString();
 }
 
 export function buildUserPrompt({ topic, client, market, profile }: any): string {

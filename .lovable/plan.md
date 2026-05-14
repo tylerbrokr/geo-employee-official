@@ -1,31 +1,72 @@
-## Problem
+# Scheduled posts: empty bodies + missing publish dates
 
-Your test client (Tyler Lewis) has a fully provisioned `client_sites` row (subdomain `tyler-lewis`, `dns_verified=true`, `pipeline_stage=autopilot`), but `clients.site_status` is still `pending` and `clients.site_url` is null. Nothing in the codebase ever flips `clients.site_status` to `live`, so the portal Dashboard keeps rendering the "GEO is building your site" panel.
+## What's wrong
+
+Looking at your test client's 4 scheduled posts:
+
+- 3 of 4 have `body` length **0** (only the title was saved). 1 has a full body.
+- All 4 have `scheduled_for = NULL`, so the UI has no date to show.
+
+Two separate bugs.
+
+### Bug 1 — Empty bodies get saved as "scheduled" posts
+
+In `_shared/generate-post.ts`, `generateOne` does:
+
+```ts
+let parsed; try { parsed = JSON.parse(content); } catch { parsed = {}; }
+const body = parsed.body ?? "";
+await admin.from("posts").insert({ ... body, status: "scheduled" });
+await admin.from("client_topics").update({ status: "used" }).eq("id", topic.id);
+```
+
+When the AI returns malformed JSON or an empty `body` field, we still insert a "scheduled" post with an empty body **and** burn the topic (`status='used'`). The autopilot publisher will eventually publish that empty post.
+
+### Bug 2 — No publish date is ever set
+
+`scheduled_for` is never written. `autopilot-tick` just publishes the oldest ready post on the client's `autopilot_day`. The portal and admin queue have no date to display, so they show `—` and you can't tell when (or whether) a post will go live.
 
 ## Fix
 
-Stop relying on `clients.site_status` / `clients.site_url` in the client portal. Treat the site as live whenever a `client_sites` row exists with a usable URL.
+### 1. Validate AI output before saving (`supabase/functions/_shared/generate-post.ts`)
 
-### Liveness rule (single source of truth)
+In `generateOne`:
 
-A client site is **live** when there is a `client_sites` row AND:
-- `custom_domain` is set and `dns_verified = true` → live URL is `https://{custom_domain}`, OR
-- a `subdomain` is set → live URL is `https://{subdomain}.mygeosite.com`
+- Parse the JSON. If parsing fails, throw — do NOT insert, do NOT mark topic used.
+- Require `parsed.body` to be a string of at least ~400 chars and to contain at least one `## ` H2. Otherwise retry the AI call once. If the retry still fails, throw.
+- Only after a successful insert, mark the topic `used`.
 
-Add a tiny helper (e.g. `src/lib/siteStatus.ts`) that returns `{ isLive, liveUrl }` from a `client_sites` row.
+This means failed generations leave the topic queued so the next autopilot run retries it, and no empty drafts pile up.
 
-### Files to change
+### 2. Compute and store `scheduled_for` at insert time
 
-1. **`src/hooks/useClient.tsx`** – also fetch the client's `client_sites` row in the same hook and return `{ client, site, isLive, liveUrl, loading, refetch }`. This avoids every page re-querying it.
-2. **`src/pages/Dashboard.tsx`** – replace `client?.site_status === "live"` check with `isLive` from the hook. Show the live card (with `liveUrl`) when live; otherwise show `<SiteBuildStatus>`.
-3. **`src/components/SiteBuildStatus.tsx`** – compute `siteDone` from the passed `client_sites` row instead of `client.site_status`. Accept `site` as a prop (or read from the hook) so the "Site provisioned" step lights up correctly.
-4. **`src/pages/MySite.tsx`** – already reads `client_sites` directly; just align it with the new helper so the same liveness rule is used.
+When inserting a new scheduled post, compute the next publish slot for that client:
 
-### Out of scope (intentionally)
+- Look up the client's `autopilot_day` (0=Sun…6=Sat) and `last_autopublish_at`.
+- Find the **latest** `scheduled_for` already on that client's `scheduled` posts.
+- Next slot = (latest existing `scheduled_for` OR next occurrence of `autopilot_day` after `last_autopublish_at`/now), then `+ 7 days` for each additional post generated in the same run.
+- Store that timestamp in `posts.scheduled_for`.
 
-- Not touching `provision-site` / `verify-custom-domains` to backfill `clients.site_status`. The column is unused by the rest of the app and keeping the portal driven by `client_sites` means the status can't drift again.
-- Admin pages (`admin/Clients`, `admin/ClientDetail`) keep showing `site_status` as-is — they're admin-only and you can decide later if you want them switched too.
+This is purely a display/scheduling hint. `autopilot-tick` keeps its existing "publish the oldest ready post on autopilot_day" rule, so behavior is backward-compatible — the dates just become visible.
 
-### Result for your test client
+### 3. Show the date in the UI
 
-Tyler Lewis's portal will immediately show the live site card pointing at `https://tyler-lewis.mygeosite.com` instead of the build-in-progress panel.
+- `src/pages/Posts.tsx` (client portal): "Date" column already reads `published_at ?? scheduled_for`, so it'll start showing real dates once #2 is in.
+- `src/pages/admin/PostsQueue.tsx` (admin): add a "Scheduled" column showing `scheduled_for` for `status='scheduled'` rows. Keep the existing "Created" column.
+
+### 4. One-time cleanup of the existing bad rows
+
+Delete the 3 empty-body scheduled posts for the test client and re-queue their topics so autopilot regenerates them properly. SQL only, run via migration:
+
+```sql
+-- requeue topics tied to empty bodies
+UPDATE client_topics SET status='queued', used_at=NULL
+ WHERE id IN (SELECT topic_id FROM posts WHERE length(body)=0 AND status='scheduled');
+DELETE FROM posts WHERE length(body)=0 AND status='scheduled';
+```
+
+## Out of scope
+
+- No changes to the AI prompt, model, or third-person voice rules.
+- No changes to the publisher cadence (still one post per `autopilot_day`).
+- No admin "regenerate this post" button — file separately if you want it.
