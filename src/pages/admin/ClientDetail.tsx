@@ -357,14 +357,21 @@ export default function AdminClientDetail() {
             const buffer = posts.filter((p) => ["draft", "pending_review", "scheduled"].includes(p.status)).length;
             const lastAuto = client.last_autopublish_at ? new Date(client.last_autopublish_at).toLocaleDateString() : "never";
             const dayLabel = client.autopilot_day != null
-              ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][client.autopilot_day]
+              ? ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][client.autopilot_day]
               : "—";
+            const upcoming = posts
+              .filter((p) => p.status === "scheduled" && p.scheduled_for)
+              .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())[0];
+            const nextLabel = upcoming
+              ? `${new Date(upcoming.scheduled_for).toLocaleDateString()} — ${upcoming.title}`
+              : `${dayLabel} (no scheduled post yet)`;
             return (
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground space-x-4">
                   <span>Drafts ready: <span className="font-medium text-foreground">{buffer} / 4</span></span>
+                  <span>Publish day: <span className="font-medium text-foreground">{dayLabel}</span></span>
                   <span>Last autopublish: <span className="font-medium text-foreground">{lastAuto}</span></span>
-                  <span>Next slot: <span className="font-medium text-foreground">{dayLabel}</span></span>
+                  <span>Next: <span className="font-medium text-foreground">{nextLabel}</span></span>
                 </div>
                 <Button size="sm" onClick={generate} disabled={generating}>
                   {generating ? "Generating..." : "Generate post"}
@@ -376,16 +383,22 @@ export default function AdminClientDetail() {
             {posts.length === 0 ? (
               <div className="px-6 py-10 text-sm text-muted-foreground">No posts yet.</div>
             ) : (
-              posts.map((p, i) => (
-                <div key={p.id}>
-                  <Link to={`/admin/posts/${p.id}`} className="grid grid-cols-[1fr_120px_100px] gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
-                    <span className="text-sm font-medium truncate">{p.title}</span>
-                    <span className="text-xs text-muted-foreground self-center">{p.status}</span>
-                    <span className="text-xs text-muted-foreground self-center">{new Date(p.created_at).toLocaleDateString()}</span>
-                  </Link>
-                  {i < posts.length - 1 && <div className="fading-divider mx-6" />}
-                </div>
-              ))
+              posts.map((p, i) => {
+                const dateForStatus = p.published_at ?? p.scheduled_for;
+                return (
+                  <div key={p.id}>
+                    <Link to={`/admin/posts/${p.id}`} className="grid grid-cols-[1fr_110px_120px_100px] gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                      <span className="text-sm font-medium truncate">{p.title}</span>
+                      <span className="text-xs text-muted-foreground self-center">{p.status}</span>
+                      <span className="text-xs text-muted-foreground self-center">
+                        {dateForStatus ? new Date(dateForStatus).toLocaleDateString() : "—"}
+                      </span>
+                      <span className="text-xs text-muted-foreground self-center">{new Date(p.created_at).toLocaleDateString()}</span>
+                    </Link>
+                    {i < posts.length - 1 && <div className="fading-divider mx-6" />}
+                  </div>
+                );
+              })
             )}
           </div>
         </TabsContent>
