@@ -23,11 +23,23 @@ export default function Posts() {
       .then(({ data }) => setPosts(data ?? []));
   }, [client]);
 
-  const filtered = posts.filter((p) => {
-    if (tab === "All") return true;
-    if (tab === "Published") return p.status === "published";
-    return p.status === "scheduled";
-  });
+  const filtered = posts
+    .filter((p) => {
+      if (tab === "All") return true;
+      if (tab === "Published") return p.status === "published";
+      return p.status === "scheduled";
+    })
+    .sort((a, b) => {
+      if (tab === "Scheduled") {
+        const av = a.scheduled_for ? new Date(a.scheduled_for).getTime() : Infinity;
+        const bv = b.scheduled_for ? new Date(b.scheduled_for).getTime() : Infinity;
+        return av - bv;
+      }
+      return 0;
+    });
+
+  const next = nextScheduledPost(posts);
+  const weekday = weekdayName(client?.autopilot_day);
 
   return (
     <DashboardLayout>
@@ -35,6 +47,11 @@ export default function Posts() {
         <div className="mb-2">
           <h1 className="page-title">Posts</h1>
           <p className="section-label mt-2">{posts.filter((p) => p.status === "published").length} POSTS PUBLISHED</p>
+          {next && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {weekday ? `Posts publish weekly on ${weekday}s. ` : ""}Next post: {formatPublishDate(next.scheduled_for)}.
+            </p>
+          )}
         </div>
 
         <div className="flex gap-6 mt-6 mb-6">
