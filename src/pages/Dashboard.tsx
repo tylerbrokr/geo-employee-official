@@ -83,6 +83,17 @@ export default function Dashboard() {
           </div>
         ) : null}
 
+        {isLive && nextPost && (
+          <div className="findr-card mb-8" style={{ borderLeft: "2px solid hsl(160 84% 30%)" }}>
+            <p className="section-label mb-2">NEXT POST</p>
+            <p className="text-sm font-medium">{nextPost.title}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Publishes {formatPublishDate(nextPost.scheduled_for)}
+              {weekday ? `. Posts go live weekly on ${weekday}s.` : "."}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {[
             { label: "Posts Published", value: counts.published, sub: "total since launch" },
