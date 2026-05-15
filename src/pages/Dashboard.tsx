@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClient } from "@/hooks/useClient";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteBuildStatus } from "@/components/SiteBuildStatus";
+import { nextScheduledPost, weekdayName, formatPublishDate } from "@/lib/autopilot";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ export default function Dashboard() {
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
+  const nextPost = nextScheduledPost(scheduled);
+  const weekday = weekdayName(client?.autopilot_day);
 
   useEffect(() => {
     if (!client) return;
@@ -79,6 +82,17 @@ export default function Dashboard() {
             <SiteBuildStatus client={client as any} />
           </div>
         ) : null}
+
+        {isLive && nextPost && (
+          <div className="findr-card mb-8" style={{ borderLeft: "2px solid hsl(160 84% 30%)" }}>
+            <p className="section-label mb-2">NEXT POST</p>
+            <p className="text-sm font-medium">{nextPost.title}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Publishes {formatPublishDate(nextPost.scheduled_for)}
+              {weekday ? `. Posts go live weekly on ${weekday}s.` : "."}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {[
