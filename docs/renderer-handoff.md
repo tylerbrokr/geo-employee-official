@@ -55,6 +55,40 @@ Then use `var(--brand-primary)` everywhere a CTA, button, link, eyebrow underlin
 
 ---
 
+## 2a. Where brand accent appears
+
+The page stays editorial and quiet. Brand color shows up as a thin signal, never as a flood fill. Rules:
+
+- Only the **accent color** is used decoratively. Primary color stays reserved for one CTA-style spot (the phone link in the header).
+- Accent is used as **lines, dots, and small marks** — never large filled areas, never text larger than a label-sized eyebrow.
+- One accent moment per major region (header, hero, post card, post body, footer). More than that becomes loud.
+- Accent is only ever drawn on white. Never used as a background behind body text.
+- All accent uses fall back to brand gold (`#c9a96e`) when the client hasn't set a color (already handled by the CSS variable default).
+
+Subtle placements:
+
+| Region | Element | Treatment |
+|--------|---------|-----------|
+| Header | Sticky header bottom border (1px) | `var(--brand-accent)` at 20% opacity |
+| Header | Phone `tel:` link | `var(--brand-accent)` (already spec'd in §3a, keep) |
+| Home / About hero | Eyebrow label above agent name | uppercase 10px, `var(--brand-accent)`, letter-spacing 0.25em |
+| Home / About hero | Decorative rule under the name | 2px solid `var(--brand-accent)`, 24px wide |
+| Post index cards (`/blog`, home recent) | Tag chip text | `var(--brand-accent)`, no background, no border |
+| Post index cards | "Read →" arrow on hover | `var(--brand-accent)` |
+| Post page (`/blog/[slug]`) | Tag eyebrow above H1 | `var(--brand-accent)` |
+| Post page | Decorative rule under H1 | 2px solid `var(--brand-accent)`, 32px wide, 12px below title |
+| Post page | In-body links | `var(--brand-accent)` (already spec'd in §15, keep) |
+| Post page | Blockquote left border | 2px `var(--brand-accent)` (already spec'd in §15, keep) |
+| Post page | "About {Agent}" section eyebrow | `var(--brand-accent)` |
+| Areas (`/areas/[slug]`) | Section eyebrows ("Neighborhoods", "FAQ") | `var(--brand-accent)` |
+| Areas | FAQ item left border (2px) when open | `var(--brand-accent)` |
+| Footer | Top hairline rule (1px) | `var(--brand-accent)` at 20% opacity |
+| Footer | Brand mark dots (if rendered) | `var(--brand-accent)` |
+
+That's it. ~10 lightweight CSS swaps, no layout changes, no new components. The agent's color choice becomes visible as a thin thread through the page without breaking the editorial feel.
+
+---
+
 ## 3. Page set
 
 | Route              | Purpose                                                                                       |
