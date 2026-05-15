@@ -679,5 +679,7 @@ After deploying this change, hit "Purge cache" on each active client's Domain ta
 - [ ] No duplicate H1 (page H1 = post title; body H1 is suppressed)
 - [ ] H2s have `id` attributes (e.g., `id="why-work-with-a-local-agent-in-edina"`) and are wrapped in `<a>` so they're deep-linkable
 - [ ] Brand accent color applied to links (uses `var(--brand-accent)`)
+- [ ] Brand accent applied to: header bottom border (20% opacity), hero eyebrow + 24px rule under name, post card tag text, post page tag eyebrow + 32px rule under H1, About section eyebrow, areas section eyebrows + open FAQ left border, footer top hairline (20% opacity)
+- [ ] Accent never used as a background behind text; only on white
 - [ ] No em dashes, no emojis, no `---` dividers visible in the rendered output
 - [ ] JSON-LD `Article` includes `articleBody` and `wordCount`
