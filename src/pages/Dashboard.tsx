@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClient } from "@/hooks/useClient";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteBuildStatus } from "@/components/SiteBuildStatus";
+import { nextScheduledPost, weekdayName, formatPublishDate } from "@/lib/autopilot";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ export default function Dashboard() {
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
+  const nextPost = nextScheduledPost(scheduled);
+  const weekday = weekdayName(client?.autopilot_day);
 
   useEffect(() => {
     if (!client) return;
