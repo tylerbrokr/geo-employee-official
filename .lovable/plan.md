@@ -1,72 +1,71 @@
-# Scheduled posts: empty bodies + missing publish dates
+## How posting actually works today
 
-## What's wrong
+Two cron jobs run the show:
 
-Looking at your test client's 4 scheduled posts:
-
-- 3 of 4 have `body` length **0** (only the title was saved). 1 has a full body.
-- All 4 have `scheduled_for = NULL`, so the UI has no date to show.
-
-Two separate bugs.
-
-### Bug 1 — Empty bodies get saved as "scheduled" posts
-
-In `_shared/generate-post.ts`, `generateOne` does:
-
-```ts
-let parsed; try { parsed = JSON.parse(content); } catch { parsed = {}; }
-const body = parsed.body ?? "";
-await admin.from("posts").insert({ ... body, status: "scheduled" });
-await admin.from("client_topics").update({ status: "used" }).eq("id", topic.id);
+```text
+06:00 UTC nightly  →  autopilot-generate  (writes drafts, never publishes)
+every hour :00     →  autopilot-tick      (publishes one post if today is the day)
 ```
 
-When the AI returns malformed JSON or an empty `body` field, we still insert a "scheduled" post with an empty body **and** burn the topic (`status='used'`). The autopilot publisher will eventually publish that empty post.
+**Nightly generator (`autopilot-generate`)**
+- For each client with `autopilot_enabled=true`, top up the buffer to **4 scheduled posts**.
+- Each new post is inserted as `status='scheduled'`. As of yesterday's fix, every new post also gets a `scheduled_for` timestamp: the next occurrence of the client's `autopilot_day` (0=Sun…6=Sat), then +7 days for each additional buffered post.
+- Topics are pulled from `client_topics` in `position` order. If the queue empties, it calls `generate-master-topics` once to refill.
 
-### Bug 2 — No publish date is ever set
+**Hourly publisher (`autopilot-tick`)**
+- Runs every hour. For each active client where `autopilot_day = today (UTC)` AND `last_autopublish_at` is null or > 7 days ago: pull the oldest ready post and flip it to `published`. Updates `clients.last_autopublish_at = now()`.
+- If the buffer is empty at publish time (buffer miss), it generates one inline so the slot isn't skipped.
+- Net result: **one post per week per client, on their `autopilot_day`, around the top of the next UTC hour after midnight UTC on that day.**
 
-`scheduled_for` is never written. `autopilot-tick` just publishes the oldest ready post on the client's `autopilot_day`. The portal and admin queue have no date to display, so they show `—` and you can't tell when (or whether) a post will go live.
+**Your test client right now** (`autopilot_day=2` = Tuesday): next publish Tue May 19, then May 26, Jun 2. Three of the four buffered posts already have those dates; one older row (`Best real estate agent in Minneapolis`, generated May 12 before the fix) still has `scheduled_for = NULL` and so reads "—".
 
-## Fix
+## Why it doesn't feel visible
 
-### 1. Validate AI output before saving (`supabase/functions/_shared/generate-post.ts`)
+- **Client portal Dashboard**: the "SCHEDULED" cards already read `scheduled_for`, but there's no top-of-page "next post goes live on …" line, and the cards only render at all if there are scheduled rows.
+- **Client portal Posts page**: the Date column reads `published_at ?? scheduled_for`, but rows with NULL show "—" and there's no headline summary.
+- **Admin Posts Queue**: has a Scheduled column (added yesterday) but no per-client "next publish" anywhere.
+- **Admin Client Detail**: doesn't surface autopilot_day, last_autopublish_at, or next slot.
+- **Legacy NULL rows**: any post generated before yesterday's fix has `scheduled_for=NULL` and disappears from any date display.
 
-In `generateOne`:
+## Plan
 
-- Parse the JSON. If parsing fails, throw — do NOT insert, do NOT mark topic used.
-- Require `parsed.body` to be a string of at least ~400 chars and to contain at least one `## ` H2. Otherwise retry the AI call once. If the retry still fails, throw.
-- Only after a successful insert, mark the topic `used`.
+### 1. Backfill `scheduled_for` for existing scheduled posts (migration)
 
-This means failed generations leave the topic queued so the next autopilot run retries it, and no empty drafts pile up.
+For each client with scheduled posts where `scheduled_for IS NULL`, compute the next `autopilot_day` slot (after `max(now, last_autopublish_at)`) and chain `+7 days` per row in `created_at` order, **slotting them after** any existing non-null `scheduled_for` for that client. This is a one-time backfill; the generator already writes the field going forward.
 
-### 2. Compute and store `scheduled_for` at insert time
+### 2. Add a "Next post" banner to the client portal Dashboard
 
-When inserting a new scheduled post, compute the next publish slot for that client:
+Above the stat cards, when the site is live and there's at least one scheduled post:
 
-- Look up the client's `autopilot_day` (0=Sun…6=Sat) and `last_autopublish_at`.
-- Find the **latest** `scheduled_for` already on that client's `scheduled` posts.
-- Next slot = (latest existing `scheduled_for` OR next occurrence of `autopilot_day` after `last_autopublish_at`/now), then `+ 7 days` for each additional post generated in the same run.
-- Store that timestamp in `posts.scheduled_for`.
+> **Next post: "Best real estate agent in Apple Valley" — Tuesday, May 19**
+> Posts publish weekly on Tuesdays.
 
-This is purely a display/scheduling hint. `autopilot-tick` keeps its existing "publish the oldest ready post on autopilot_day" rule, so behavior is backward-compatible — the dates just become visible.
+Source: client's earliest `scheduled_for` for `status='scheduled'`. Fall back to "Calculating your next slot…" if all are NULL (shouldn't happen post-backfill).
 
-### 3. Show the date in the UI
+### 3. Show the schedule on the Posts page
 
-- `src/pages/Posts.tsx` (client portal): "Date" column already reads `published_at ?? scheduled_for`, so it'll start showing real dates once #2 is in.
-- `src/pages/admin/PostsQueue.tsx` (admin): add a "Scheduled" column showing `scheduled_for` for `status='scheduled'` rows. Keep the existing "Created" column.
+- Add a one-line subhead under the page title: `Posts publish weekly on {weekday}. Next post: {date}.`
+- Sort `Scheduled` tab by `scheduled_for` ascending (currently sorts by `created_at desc`, which puts the furthest-out post first).
 
-### 4. One-time cleanup of the existing bad rows
+### 4. Show the next publish date on Admin → Client Detail
 
-Delete the 3 empty-body scheduled posts for the test client and re-queue their topics so autopilot regenerates them properly. SQL only, run via migration:
+Add a small "Autopilot" block: day of week, last published, next scheduled post title + date. Read-only.
 
-```sql
--- requeue topics tied to empty bodies
-UPDATE client_topics SET status='queued', used_at=NULL
- WHERE id IN (SELECT topic_id FROM posts WHERE length(body)=0 AND status='scheduled');
-DELETE FROM posts WHERE length(body)=0 AND status='scheduled';
-```
+### 5. Keep Admin → Posts Queue as-is
+
+Already has a Scheduled column. After the backfill it'll be populated for legacy rows too.
 
 ## Out of scope
 
-- No changes to the AI prompt, model, or third-person voice rules.
-- No changes to the publisher cadence (still one post per `autopilot_day`).
-- No admin "regenerate this post" button — file separately if you want it.
+- No changes to publish cadence (still weekly per client on `autopilot_day`).
+- No changes to the AI generator, prompts, or topic pipeline.
+- No "manually pick a date" UI for individual posts. If you want that later, file separately.
+- No timezone localization — `autopilot_day` is interpreted in UTC. Surfaced dates use the user's locale for formatting only.
+
+## Files touched
+
+- `supabase/migrations/<new>.sql` — backfill `scheduled_for` for legacy scheduled rows.
+- `src/pages/Dashboard.tsx` — "Next post" banner.
+- `src/pages/Posts.tsx` — subhead + sort scheduled tab by `scheduled_for`.
+- `src/pages/admin/ClientDetail.tsx` — Autopilot summary block.
+- (Reusable helper) `src/lib/autopilot.ts` — `weekdayName(dow)`, `nextScheduledPost(posts)`.
