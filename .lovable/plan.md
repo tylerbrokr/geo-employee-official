@@ -1,78 +1,137 @@
-## What "3/5 pages fully tagged" actually means
+## What is still broken
 
-I fetched the live test site (`tyler-lewis.mygeosite.com`) and inspected every page's `<head>`. The 6 fields the scorer requires per page are: `title`, `meta description`, `canonical`, `og:title`, `og:description`, `og:url`.
+The dashboard/scorer is now doing its job. It is telling us the public site renderer still has two route bugs:
 
-| Route | Title | Desc | Canonical | og:title | og:desc | og:url | Verdict |
-|---|---|---|---|---|---|---|---|
-| `/` | ✓ | **✗** | **✗** | ✓ | **✗** | **✗** | **fails** (4 fields missing) |
-| `/about` | ✓ | **✗** | ✓ | ✓ | **✗** | ✓ | **fails** (2 fields missing) |
-| `/blog` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | passes |
-| `/blog/{slug}` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | passes |
-| `/areas/{slug}` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | passes |
+- `/` is missing `<meta name="description">` and `<meta property="og:description">`.
+- `/about` is missing `<meta name="description">` and `<meta property="og:description">`.
+- `og:image` is missing on all sampled pages, but that is informational right now.
 
-So the two failing pages are `/` and `/about`. The data exists — `site_copy.meta_title` and `site_copy.meta_description` are populated for the test client. This is a pure renderer bug: the homepage and about routes aren't reading from `site_copy`, and `/about` is missing its description + og:description.
+This is not fixed inside this dashboard app. It must be fixed in the separate public-site renderer (`geo-sites`). I checked from here and that project is not accessible in this workspace, so I cannot patch it directly from this project.
 
-Also worth noting: **no page emits `og:image`** even though §8 of the renderer spec already calls for it. The current scorer doesn't grade that, but the renderer team should close it in the same pass.
+## Plan
 
----
+1. **Open the `geo-sites` renderer project.**
+   - Find the homepage route (`/`) and about route (`/about`).
+   - Look for existing head/meta code used by `/blog`, `/blog/[slug]`, or `/areas/[slug]`, because those routes already pass.
 
-## Where the fix lives
+2. **Centralize the head builder.**
+   - Create or update one helper that emits the full required page head:
+     - `title`
+     - `description`
+     - `canonical`
+     - `og:title`
+     - `og:description`
+     - `og:url`
+     - `og:type`
+     - `og:image` when a valid image exists
+     - `twitter:card`
+   - This prevents the same issue from coming back route by route.
 
-The site renderer is the separate `geo-sites` project (Next.js), not this dashboard. This dashboard owns two things relevant to the issue:
+3. **Patch the homepage metadata.**
+   - Source title from `site_copy.meta_title`.
+   - Source description and `og:description` from `site_copy.meta_description`.
+   - Set canonical and `og:url` to `https://{hostname}/`.
+   - Set `og:type` to `website`.
 
-1. `docs/renderer-handoff.md` — the spec the renderer team builds from.
-2. `supabase/functions/score-ai-visibility/index.ts` — the visibility scorer that surfaced this finding.
+4. **Patch the about page metadata.**
+   - Source title from `About {agent_display_name} · {agent_display_name}` or the renderer’s existing about title pattern.
+   - Source description and `og:description` from `site_copy.bio_short`, falling back to `site_copy.meta_description`.
+   - Set canonical and `og:url` to `https://{hostname}/about`.
+   - Set `og:type` to `website`.
 
-Fixing both makes the issue surface clearly for every client going forward, and gives the renderer team a single normative source to implement against once.
+5. **Add the shared `og:image` fallback.**
+   - Use this order:
+     - `site_copy.og_image_url`
+     - `clients.headshot_url`
+     - `clients.logo_url`
+     - omit the tag if none exists
+   - Do not emit a placeholder or broken image URL.
 
----
+6. **Verify before deploying.**
+   - Run this against the preview renderer domain for each sampled path:
 
-## Changes in this project
+```bash
+curl -s https://{hostname}/{path} | grep -oiE '<title[^>]*>[^<]*</title>|<meta[^>]+(name|property)=["'"'"'](description|og:title|og:description|og:url|og:type|og:image)["'"'"'][^>]*>|<link[^>]+rel=["'"'"']canonical["'"'"'][^>]*>'
+```
 
-### 1. Tighten `docs/renderer-handoff.md` §8 (the per-page head contract)
+   - Confirm `/`, `/about`, `/blog`, `/blog/{slug}`, and `/areas/{slug}` each return the six required tags.
 
-Replace the current §8 prose with a normative per-route table that makes the contract impossible to misread. Concretely:
+7. **Deploy `geo-sites`, then re-run the visibility check.**
+   - Once the renderer deploys, click **Re-run** on the Visibility card for the test client.
+   - Expected result: `5/5 pages fully tagged — titles unique`.
+   - `og:image` will improve only if the client has one of the fallback image fields populated.
 
-- A "every page MUST emit these 6 fields" rule: `title`, `meta description`, `canonical`, `og:title`, `og:description`, `og:url`.
-- A per-route source-of-truth table:
+## Going forward
 
-  ```text
-  Route              title                     description                  canonical / og:url
-  /                  site_copy.meta_title      site_copy.meta_description   https://{host}/
-  /about             "About {agent} · {brand}" site_copy.bio_short          https://{host}/about
-  /blog              "Writing · {brand}"       site_copy.meta_description   https://{host}/blog
-  /blog/{slug}       post.meta_title ?? title  post.meta_description        https://{host}/blog/{slug}
-  /areas/{slug}      area.meta_title           area.meta_description        https://{host}/areas/{slug}
-  ```
-- `og:image` fallback chain restated as required: `site_copy.og_image_url` → `clients.headshot_url` → `clients.logo_url` → omit.
-- An explicit callout naming the two routes currently failing (`/` and `/about`) and the exact tags they're missing, so the renderer PR knows what "done" looks like.
-- A small "verification" snippet (one-liner curl + grep) the renderer team can run before declaring a route fixed.
+Once `geo-sites` uses the shared head builder for every route, every new client gets the fix automatically. The copy generator already creates `site_copy.meta_title`, `site_copy.meta_description`, and `site_copy.bio_short`, so this does not require new intake fields or manual per-client work.
 
-### 2. Make the scorer report which page is missing what
+## Exact code shape to give the renderer developer
 
-Right now the scorer collapses everything into `3/5 pages fully tagged, titles unique`. That's why this finding is hard to act on. Update `supabase/functions/score-ai-visibility/index.ts` so the `page_meta` check:
+```ts
+function buildPageHead({
+  title,
+  description,
+  canonicalUrl,
+  type = "website",
+  siteCopy,
+  client,
+}: {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  type?: "website" | "article";
+  siteCopy?: { og_image_url?: string | null };
+  client?: { headshot_url?: string | null; logo_url?: string | null };
+}) {
+  const ogImage =
+    siteCopy?.og_image_url ||
+    client?.headshot_url ||
+    client?.logo_url ||
+    null;
 
-- Records, per sampled page, which of the 6 required fields are present/missing.
-- Returns the failing rows in the `details` string, e.g.
-  `"/: missing description, canonical, og:description, og:url; /about: missing description, og:description"`.
-- Keeps the same scoring weight (4 pts) and the same partial-credit math, just with actionable text.
-- Optional: also surface a separate sub-line for `og:image` coverage (informational, not scored) so the renderer team sees it while they're in there.
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type,
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  };
+}
+```
 
-This means the next time a client's score drops on this check, the admin sees the exact tags and routes to fix instead of a vague ratio.
+Homepage:
 
-### 3. No DB or data changes
+```ts
+return buildPageHead({
+  title: siteCopy.meta_title,
+  description: siteCopy.meta_description,
+  canonicalUrl: `https://${hostname}/`,
+  siteCopy,
+  client,
+});
+```
 
-Data is fine — `site_copy.meta_title`/`meta_description` and `clients.bio_short` are populated by the existing `generate-site-copy` flow. The intake wizard and copy generator don't need changes.
+About page:
 
----
+```ts
+return buildPageHead({
+  title: `About ${agentDisplayName} · ${agentDisplayName}`,
+  description: siteCopy.bio_short || siteCopy.meta_description,
+  canonicalUrl: `https://${hostname}/about`,
+  siteCopy,
+  client,
+});
+```
 
-## Out of scope
-
-- The actual renderer PR in the `geo-sites` repo — that's a separate project. This plan makes the spec unambiguous and the scorer specific, so that PR is a tight, one-shot fix that lands for every client at once.
-- Adding `og:image` to the scored checks (currently informational only).
-- Per-route Helmet in this dashboard project — these tags belong to the public client sites, not the admin UI.
-
-## Files touched
-
-- `docs/renderer-handoff.md` (edit §8)
-- `supabase/functions/score-ai-visibility/index.ts` (rewrite the `page_meta` check's details output)
+That is the actual fix needed. The dashboard has already been updated so future reports explain exactly which route and tag failed.
