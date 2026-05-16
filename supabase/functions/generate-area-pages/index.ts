@@ -10,6 +10,7 @@
 //
 // Auth: admin user OR cron (apikey === service role).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { triggerVisibilityScore } from "../_shared/trigger-visibility.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
