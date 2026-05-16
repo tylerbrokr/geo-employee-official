@@ -340,20 +340,55 @@ Always emit JSON-LD inside `<script type="application/ld+json">` in the document
 
 ---
 
-## 8. Open Graph + Twitter card
+## 8. Per-page `<head>` (title, description, canonical, OG) — NORMATIVE
 
-In every page's `<head>`:
+**Every public route MUST emit all six of these fields in its `<head>`.** Missing any one of them fails the AI Visibility scorer's `page_meta` check and degrades LLM citations.
 
-```html
-<meta property="og:title" content="{meta_title}" />
-<meta property="og:description" content="{meta_description}" />
-<meta property="og:type" content="website" /> <!-- "article" on blog posts -->
-<meta property="og:url" content="https://{hostname}{path}" />
-<meta property="og:image" content="{og_image_url ?? headshot_url ?? logo_url}" />
-<meta name="twitter:card" content="summary_large_image" />
+Required on every page:
+
+1. `<title>`
+2. `<meta name="description">`
+3. `<link rel="canonical">`
+4. `<meta property="og:title">`
+5. `<meta property="og:description">`
+6. `<meta property="og:url">`
+
+Also required (not scored yet, but part of the contract):
+
+- `<meta property="og:type">` — `"article"` on `/blog/{slug}`, `"website"` everywhere else
+- `<meta property="og:image">` — fallback chain: `site_copy.og_image_url` → `clients.headshot_url` → `clients.logo_url` → omit the tag entirely (never emit a broken/placeholder image)
+- `<meta name="twitter:card" content="summary_large_image">`
+
+### Source of truth per route
+
+| Route | `title` | `description` / `og:description` | `canonical` / `og:url` | `og:type` |
+|---|---|---|---|---|
+| `/` | `site_copy.meta_title` | `site_copy.meta_description` | `https://{hostname}/` | `website` |
+| `/about` | `"About {agent_display_name} · {agent_display_name}"` | `site_copy.bio_short` (fallback: `site_copy.meta_description`) | `https://{hostname}/about` | `website` |
+| `/blog` | `"Writing · {agent_display_name}"` | `site_copy.meta_description` | `https://{hostname}/blog` | `website` |
+| `/blog/{slug}` | `post.meta_title ?? post.title` | `post.meta_description ?? post.excerpt` | `https://{hostname}/blog/{slug}` | `article` |
+| `/areas/{slug}` | `area.meta_title` | `area.meta_description` | `https://{hostname}/areas/{slug}` | `website` |
+
+`og:title` mirrors `title` (strip the `· {brand}` suffix if present).
+
+### Currently failing in production (2026-05-16, test client `tyler-lewis.mygeosite.com`)
+
+The renderer ships `/blog`, `/blog/{slug}`, and `/areas/{slug}` correctly. Two routes are incomplete and must be fixed in the next renderer PR:
+
+- **`/`** — missing `description`, `canonical`, `og:description`, `og:url`. Currently emits only `<title>` and `og:title`. Read from `site_copy.meta_title` / `site_copy.meta_description` (both already populated by `generate-site-copy`).
+- **`/about`** — missing `description` and `og:description`. Has title, canonical, `og:title`, `og:url`. Use `site_copy.bio_short` as the description source.
+
+No data work is required — `site_copy` rows already contain `meta_title`, `meta_description`, and `bio_short` for every onboarded client.
+
+### Verify a route in one line
+
+```bash
+curl -s https://{hostname}/{path} | grep -oiE '<title[^>]*>[^<]*</title>|<meta[^>]+(name|property)=["'"'"'](description|og:title|og:description|og:url|og:type|og:image)["'"'"'][^>]*>|<link[^>]+rel=["'"'"']canonical["'"'"'][^>]*>'
 ```
 
-Fallback chain for the image: `site_copy.og_image_url` → `clients.headshot_url` → `clients.logo_url` → omit.
+All six required tags must appear. This is the exact extraction the AI Visibility scorer runs.
+
+
 
 ---
 

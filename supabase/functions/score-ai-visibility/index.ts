@@ -384,22 +384,47 @@ Deno.serve(async (req) => {
     ));
 
     const pageMetas = [
-      { name: "home", html: homeHtml },
-      { name: "about", html: aboutHtml },
-      { name: "blog", html: blogHtml },
-      ...(sampledPost ? [{ name: "post", html: postHtml }] : []),
-      ...(sampledArea ? [{ name: "area", html: areaHtml }] : []),
+      { name: "/", html: homeHtml },
+      { name: "/about", html: aboutHtml },
+      { name: "/blog", html: blogHtml },
+      ...(sampledPost ? [{ name: `/blog/${sampledPost.slug}`, html: postHtml }] : []),
+      ...(sampledArea ? [{ name: `/areas/${sampledArea.slug}`, html: areaHtml }] : []),
     ];
-    const metasOK = pageMetas.filter((p) => p.html && pageMetaOK(extractMeta(p.html))).length;
-    const titles = pageMetas.map((p) => extractMeta(p.html).title).filter(Boolean);
+    const REQUIRED_FIELDS: Array<{ key: keyof ReturnType<typeof extractMeta>; label: string }> = [
+      { key: "title", label: "title" },
+      { key: "description", label: "description" },
+      { key: "canonical", label: "canonical" },
+      { key: "ogTitle", label: "og:title" },
+      { key: "ogDescription", label: "og:description" },
+      { key: "ogUrl", label: "og:url" },
+    ];
+    const perPage = pageMetas.map((p) => {
+      const m = extractMeta(p.html);
+      const missing = REQUIRED_FIELDS.filter((f) => !m[f.key]).map((f) => f.label);
+      return { name: p.name, title: m.title, missing, fetched: !!p.html, hasOgImage: !!m.ogImage };
+    });
+    const fetchedPages = perPage.filter((p) => p.fetched);
+    const metasOK = fetchedPages.filter((p) => p.missing.length === 0).length;
+    const titles = fetchedPages.map((p) => p.title).filter(Boolean);
     const titlesUnique = new Set(titles).size === titles.length;
-    const metaPass = pageMetas.length > 0 && metasOK === pageMetas.length && titlesUnique;
+    const metaPass = fetchedPages.length > 0 && metasOK === fetchedPages.length && titlesUnique;
+    const failingDetail = fetchedPages
+      .filter((p) => p.missing.length > 0)
+      .map((p) => `${p.name}: missing ${p.missing.join(", ")}`)
+      .join("; ");
+    const ogImageCoverage = fetchedPages.filter((p) => p.hasOgImage).length;
+    const detailParts = [
+      `${metasOK}/${fetchedPages.length} pages fully tagged`,
+      `titles ${titlesUnique ? "unique" : "DUPLICATE"}`,
+      `og:image on ${ogImageCoverage}/${fetchedPages.length} (informational)`,
+    ];
+    if (failingDetail) detailParts.push(failingDetail);
     checks.push(check(
       "page_meta", "Every sampled page has title, description, canonical, og:* (and unique titles)", "schema", 4,
       metaPass ? true : metasOK > 0 ? "partial" : false,
-      `${metasOK}/${pageMetas.length} pages fully tagged, titles ${titlesUnique ? "unique" : "DUPLICATE"}`,
-      "Renderer must emit a full per-page head. See §8.",
-      Math.round((metasOK / Math.max(pageMetas.length, 1)) * 4),
+      detailParts.join(" — "),
+      "Renderer must emit a full per-page head. See docs/renderer-handoff.md §8 for the per-route source-of-truth table.",
+      Math.round((metasOK / Math.max(fetchedPages.length, 1)) * 4),
     ));
 
     const schemaPhone = homeBiz?.telephone ?? homeAgent?.telephone ?? "";
