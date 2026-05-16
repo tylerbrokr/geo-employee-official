@@ -1,70 +1,139 @@
-# Add subtle brand-color accents to the client blog site
 
-## Context
+# AI Visibility Score — admin-side health check per client
 
-The public blog sites (`*.mygeosite.com` and custom domains) are rendered by the **separate `geo-sites` repo**, not by this admin platform. Each client picks a `primary_color` and `accent_color` during onboarding, and the renderer already injects them as CSS variables (`--brand-primary`, `--brand-accent`) on `<html>`. Today only three things actually consume them: post-body link color, blockquote left border, and the header phone link. Everything else uses ink/off-white/gold from the brand palette, so the agent's color choice is invisible on the rendered page.
+## Goal
 
-This plan extends `docs/renderer-handoff.md` (the spec the geo-sites repo follows) with a tight list of additional **subtle** placements. The renderer team then applies the diff and redeploys. No changes to the admin/portal code, no changes to AI generation, no changes to the brand palette inside this app.
+Give Blake/Tyler a single number per client (0–100) plus a checklist showing exactly what's helping or hurting that client's chance of being cited by ChatGPT, Claude, Perplexity, and Google's AI Overviews. Score lives on the admin client detail page. No client-facing exposure in v1.
 
-## Design principle
+## What "AI visibility" actually means here
 
-Keep the page editorial and quiet. Brand color appears as a thin signal, never as a flood fill. Rules:
+LLM crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) and AI-overview retrievers reward the same things classic SEO does, plus a few specifics:
 
-- Only the **accent color** is used decoratively. Primary color stays reserved for one CTA-style spot (the phone link).
-- Accent is used as **lines, dots, and small marks** — never large filled areas, never text larger than a label.
-- One accent moment per major region (header, hero, post card, post body, footer). Anything more becomes loud.
-- All accent uses fall back to brand gold (`#c9a96e`) when the client hasn't set a color.
+1. **Crawlability** — `robots.txt` explicitly allows the AI bots, `sitemap.xml` lists every page, `llms.txt` summarizes the site.
+2. **Structured data** — JSON-LD on every page (`RealEstateAgent` / `Person` + `LocalBusiness` sitewide, `Article` + `articleBody` + `wordCount` on posts, `FAQPage` on areas, `BreadcrumbList` everywhere).
+3. **Identity / NAP authority** — Name, Address, Phone consistent across pages and present in schema.
+4. **Per-page meta** — unique `<title>`, `<meta description>`, canonical, OG tags.
+5. **Content depth** — published posts with real body length, FAQ coverage on area pages, internal linking.
+6. **Freshness** — recent `published_at`, autopilot active, no stale flags.
 
-## Subtle accent placements (renderer changes)
+The renderer spec in `docs/renderer-handoff.md` already defines almost all of this. The score's job is to **verify it's actually happening**, not just that we intended it.
+
+## Score model
+
+Total = 100, split into 4 categories. Each check is pass/fail/partial with a weight.
 
 ```text
-Header
-  └─ 1px bottom border on the sticky header  →  var(--brand-accent) at 20% opacity
-  └─ Phone tel: link                          →  var(--brand-accent) (already spec'd, keep)
-
-Home / About hero
-  └─ Eyebrow label above agent name           →  uppercase 10px, var(--brand-accent), letter-spacing 0.25em
-  └─ 24px hairline rule under the name        →  2px solid var(--brand-accent)
-
-Post index cards (/blog and home recent posts)
-  └─ Tag chip text                            →  var(--brand-accent), no background, no border
-  └─ "Read →" arrow on hover                  →  var(--brand-accent)
-
-Post page (/blog/[slug])
-  └─ Tag eyebrow above H1                     →  var(--brand-accent)
-  └─ H1 underline (decorative, 32px wide)     →  2px solid var(--brand-accent), 12px below title
-  └─ In-body links                            →  var(--brand-accent) (already spec'd, keep)
-  └─ Blockquote left border                   →  var(--brand-accent) (already spec'd, keep)
-  └─ "About {Agent}" section eyebrow          →  var(--brand-accent)
-
-Areas pages (/areas/[slug])
-  └─ Section eyebrows ("Neighborhoods", "FAQ") →  var(--brand-accent)
-  └─ FAQ item left border (2px) when open      →  var(--brand-accent)
-
-Footer
-  └─ Top hairline rule (1px)                  →  var(--brand-accent) at 20% opacity
-  └─ Brand mark dots (if used)                 →  var(--brand-accent)
+┌─ Profile completeness         (25 pts) — what we own in the DB
+│   • NAP filled (phone_e164, street, city, state, postal)     5
+│   • Headshot + logo uploaded                                  3
+│   • bio_short + bio_long + tagline filled                     5
+│   • meta_title + meta_description set                         3
+│   • Primary + accent color set (not defaults)                 2
+│   • ≥3 specialties, ≥1 property_type                          3
+│   • voice + values + ideal_client + story filled              4
+│
+├─ Site infrastructure          (25 pts) — live fetch
+│   • Custom domain verified OR subdomain live                  5
+│   • robots.txt allows GPTBot/ClaudeBot/PerplexityBot/         5
+│     Google-Extended
+│   • sitemap.xml returns 200, lists /, /about, /blog,          5
+│     /areas/*, all published posts
+│   • llms.txt present and well-formed                          5
+│   • All key routes return 200 (sample 5)                      5
+│
+├─ Structured data + meta       (25 pts) — live fetch + parse
+│   • Homepage JSON-LD: RealEstateAgent/Person + LocalBusiness  6
+│   • Each sampled post: Article JSON-LD with articleBody +     6
+│     wordCount + author + datePublished
+│   • Area pages: FAQPage JSON-LD                               4
+│   • BreadcrumbList present on inner pages                     3
+│   • Every sampled page has unique <title>, meta desc,         4
+│     canonical, og:* tags
+│   • NAP in schema matches DB                                  2
+│
+└─ Content + freshness          (25 pts)
+    • ≥4 published posts                                        5
+    • ≥1 published post in last 14 days                         5
+    • Autopilot enabled + ≥4 drafts buffered                    5
+    • All client_areas generated (no stale=true)                5
+    • site_copy not stale                                       3
+    • Average published-post word count ≥800                    2
 ```
 
-That's it. ~10 lightweight CSS swaps. No layout changes, no new components.
+Score bands: 90+ Excellent · 75–89 Good · 50–74 Needs work · <50 At risk.
 
-## Legibility guard
+## Surface in admin UI
 
-Accent color is only ever used on white. Never as a background behind text. The renderer already has `readableForeground()` for the rare case primary color is used as a fill (e.g. a button) — keep that, but no new fills are introduced here.
+On `/admin/clients/:id`, above the tabs, add an "AI Visibility" card:
 
-## Deliverables in this repo
+```text
+┌────────────────────────────────────────────────────┐
+│  AI VISIBILITY                              82/100 │
+│  Good · last checked 4 min ago     [Re-run check]  │
+│                                                    │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░  Good              │
+│                                                    │
+│  Profile           23/25  ✓                        │
+│  Infrastructure    20/25  ⚠ llms.txt missing       │
+│  Schema + meta     22/25  ⚠ Article schema missing │
+│                          articleBody on 2 posts    │
+│  Content + fresh   17/25  ⚠ no post in 18 days     │
+│                                                    │
+│  [View full checklist]                             │
+└────────────────────────────────────────────────────┘
+```
 
-1. **Edit `docs/renderer-handoff.md`** — add a new section §2a "Where brand accent appears" with the table above and the legibility rule. Update the existing checklist at the bottom with the new accent placements so the renderer team can tick them off.
+Expanding the checklist shows every check, pass/fail, and a one-line "how to fix" pointing to the right tab (Domain, Copy, Areas, Posts).
 
-2. **No code changes in this app.** The portal already lets the client pick the colors; the renderer is what needs to apply them.
+Optional v1.1: aggregate score column on the admin `Clients` list so Blake can sort by it.
 
-## Out of scope
+## How it runs
 
-- Changing the admin/portal UI (the brand bible says the platform itself stays ink/white/gold — client colors only show on their own public site).
-- Adding a "live color preview" inside the portal. Can do later if useful.
-- Changing how `primary_color` / `accent_color` are stored or onboarded.
-- Touching AI generation, posting cadence, or any backend logic.
+- **On demand** via "Re-run check" button on the client detail page.
+- **Automatically** after these events: site goes live, post publishes, area pages regenerated, site_copy regenerated, custom domain verified. (Triggered by a small edge function call from the existing flows — non-blocking.)
+- Results cached in a new `client_visibility_reports` table; admin UI reads the latest row.
 
-## Files
+## Technical details
 
-- `docs/renderer-handoff.md` — append §2a, update final checklist.
+### New edge function: `score-ai-visibility`
+- Input: `{ client_id }`
+- Auth: admin-only (checks `has_role(auth.uid(), 'admin')`).
+- Steps:
+  1. Load client + market + site + site_copy + areas + posts + topics from DB.
+  2. Run profile + content checks (pure DB, fast).
+  3. Resolve the live hostname (`custom_domain` if verified, else `{subdomain}.mygeosite.com`).
+  4. Fetch `robots.txt`, `sitemap.xml`, `llms.txt`, `/`, `/about`, `/blog`, one sampled `/blog/[slug]`, one sampled `/areas/[slug]`.
+  5. Parse HTML for `<title>`, meta description, canonical, og:*, and all `<script type="application/ld+json">` blocks. Validate the JSON-LD shape against expected types.
+  6. Compute category scores → total.
+  7. Insert one row into `client_visibility_reports`.
+- 10s timeout per fetch, all fetches parallel, ignore-fail on individual sub-pages (counts as fail, not as crash).
+
+### New table: `client_visibility_reports`
+- Columns: `id`, `client_id`, `total_score smallint`, `profile_score`, `infra_score`, `schema_score`, `content_score`, `checks jsonb` (full per-check breakdown: `[{id, label, category, points, max, status, detail, fix_hint}]`), `created_at`.
+- RLS: admins only.
+- Indexed on `(client_id, created_at desc)`.
+
+### New admin component
+- `src/components/admin/VisibilityCard.tsx` — score header + category bars.
+- `src/components/admin/VisibilityChecklist.tsx` — expandable full breakdown.
+- Hook into `ClientDetail.tsx` above the existing Tabs.
+
+### Auto-rescore triggers
+- Call the edge function (fire-and-forget) at the end of: `provision-site` after `dns_verified`, `generate-area-pages` success, `generate-site-copy` success, `autopilot-tick` after publish. No blocking; failures swallowed.
+
+## Out of scope for v1
+
+- Showing the score to clients in the portal.
+- Backlink/authority signals (would need Semrush; can add later as a separate category).
+- Real LLM "do you know this agent?" probes (interesting but expensive and slow; revisit later).
+- Historical trend charts (just store reports, render trend in v1.1).
+- Auto-fix actions — v1 only diagnoses.
+
+## Deliverables
+
+1. Migration: `client_visibility_reports` table + RLS.
+2. Edge function: `supabase/functions/score-ai-visibility/index.ts` with the check engine.
+3. Wire fire-and-forget calls from `provision-site`, `generate-area-pages`, `generate-site-copy`, `autopilot-tick`.
+4. `VisibilityCard` + `VisibilityChecklist` components.
+5. Mount on `ClientDetail.tsx` above tabs.
+6. Brief admin-side doc section in `docs/renderer-handoff.md` (or new `docs/ai-visibility.md`) listing each check and weight, so future scoring tweaks are intentional.
