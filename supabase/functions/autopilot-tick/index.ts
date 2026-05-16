@@ -74,6 +74,7 @@ async function publishForClient(admin: any, apiKey: string | undefined, client_i
   const nowIso = new Date().toISOString();
   await admin.from("posts").update({ status: "published", published_at: nowIso }).eq("id", post.id);
   await admin.from("clients").update({ last_autopublish_at: nowIso }).eq("id", client_id);
+  triggerVisibilityScore(client_id);
   return { published_post_id: post.id, buffer_miss };
 }
 

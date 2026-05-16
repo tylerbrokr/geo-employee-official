@@ -4,6 +4,7 @@
 //   and stores the returned id + the DNS records the agent needs to add.
 // - Triggers initial area-page generation for the client's markets.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { triggerVisibilityScore } from "../_shared/trigger-visibility.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

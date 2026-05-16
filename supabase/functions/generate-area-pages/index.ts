@@ -374,6 +374,7 @@ No prose, no markdown, no code fences. JSON object only.`;
       }
     }
 
+    triggerVisibilityScore(clientId);
     return json({ ok: true, generated: generatedCount, total: allAreas.length, errors });
   } catch (e: any) {
     return json({ error: e.message ?? String(e) }, 500);

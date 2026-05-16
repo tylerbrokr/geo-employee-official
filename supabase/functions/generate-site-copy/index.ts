@@ -200,6 +200,7 @@ No prose, no markdown, no code fences. JSON object only.`;
       }
     }
 
+    triggerVisibilityScore(clientId);
     return json({ ok: true, generated: fieldsToGenerate, model: MODEL });
   } catch (e: any) {
     return json({ error: e.message ?? String(e) }, 500);
