@@ -177,6 +177,9 @@ Deno.serve(async (req) => {
     // generate-area-pages is idempotent and respects existing rows.
     void admin.functions.invoke("generate-area-pages", { body: { client_id: clientId } });
 
+    // Fire-and-forget: refresh AI visibility score after provisioning.
+    triggerVisibilityScore(clientId);
+
     return json({
       subdomain,
       subdomain_url: `https://${subdomain}.${SUBDOMAIN_HOST}`,
