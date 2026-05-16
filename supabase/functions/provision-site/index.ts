@@ -4,6 +4,7 @@
 //   and stores the returned id + the DNS records the agent needs to add.
 // - Triggers initial area-page generation for the client's markets.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { triggerVisibilityScore } from "../_shared/trigger-visibility.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,6 +177,9 @@ Deno.serve(async (req) => {
     // Kick off area-page generation in the background (non-blocking).
     // generate-area-pages is idempotent and respects existing rows.
     void admin.functions.invoke("generate-area-pages", { body: { client_id: clientId } });
+
+    // Fire-and-forget: refresh AI visibility score after provisioning.
+    triggerVisibilityScore(clientId);
 
     return json({
       subdomain,

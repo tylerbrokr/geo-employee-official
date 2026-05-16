@@ -10,6 +10,7 @@ import { DomainTab } from "@/components/admin/DomainTab";
 import { SiteCopyTab } from "@/components/admin/SiteCopyTab";
 import { AreasTab } from "@/components/admin/AreasTab";
 import { MarketsCard } from "@/components/admin/MarketsCard";
+import { VisibilityCard } from "@/components/admin/VisibilityCard";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -196,6 +197,8 @@ export default function AdminClientDetail() {
           </Button>
         </div>
       </div>
+
+      {clientId && <VisibilityCard clientId={clientId} />}
 
       <Tabs defaultValue="overview">
         <TabsList>

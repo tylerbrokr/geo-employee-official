@@ -331,6 +331,48 @@ export type Database = {
         }
         Relationships: []
       }
+      client_visibility_reports: {
+        Row: {
+          checks: Json
+          client_id: string
+          content_score: number
+          created_at: string
+          error: string | null
+          hostname: string | null
+          id: string
+          infra_score: number
+          profile_score: number
+          schema_score: number
+          total_score: number
+        }
+        Insert: {
+          checks?: Json
+          client_id: string
+          content_score: number
+          created_at?: string
+          error?: string | null
+          hostname?: string | null
+          id?: string
+          infra_score: number
+          profile_score: number
+          schema_score: number
+          total_score: number
+        }
+        Update: {
+          checks?: Json
+          client_id?: string
+          content_score?: number
+          created_at?: string
+          error?: string | null
+          hostname?: string | null
+          id?: string
+          infra_score?: number
+          profile_score?: number
+          schema_score?: number
+          total_score?: number
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           accent_color: string | null

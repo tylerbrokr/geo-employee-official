@@ -6,6 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { fetchNextReadyPost } from "../_shared/ready-posts.ts";
 import { generateOne } from "../_shared/generate-post.ts";
+import { triggerVisibilityScore } from "../_shared/trigger-visibility.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +75,7 @@ async function publishForClient(admin: any, apiKey: string | undefined, client_i
   const nowIso = new Date().toISOString();
   await admin.from("posts").update({ status: "published", published_at: nowIso }).eq("id", post.id);
   await admin.from("clients").update({ last_autopublish_at: nowIso }).eq("id", client_id);
+  triggerVisibilityScore(client_id);
   return { published_post_id: post.id, buffer_miss };
 }
 
