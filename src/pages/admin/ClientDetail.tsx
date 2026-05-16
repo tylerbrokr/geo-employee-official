@@ -198,6 +198,8 @@ export default function AdminClientDetail() {
         </div>
       </div>
 
+      {clientId && <VisibilityCard clientId={clientId} />}
+
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
