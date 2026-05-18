@@ -293,10 +293,13 @@ Voice rules (strict):
 - Pull from the agent's specialties, voice, and differentiators where they fit.
 - FAQs must be questions a real buyer/seller would type into ChatGPT or Google about ${area.name} real estate.
 
+COMPLIANCE (hard ban):
+Do not include specific price ranges, median home prices, days-on-market figures, list-to-sale ratios, school district ratings or rankings, or any numerical market statistic that could become outdated or be inaccurate. If market context is needed, reference general conditions only (e.g. "a competitive market", "strong buyer demand") without citing numbers. This is a compliance requirement.
+
 Return STRICT JSON with these exact keys:
 {
   "intro": "string, 1-2 sentences, under 240 chars. Hooks the page. Names ${area.name} and the agent.",
-  "market_blurb": "string, 2-3 short paragraphs separated by \n\n. What it's like to buy or sell here, who lives here, what makes the market distinct. Reference price ranges only in vague terms (e.g., 'mid-range' not specific dollars). Mention the agent's relevant specialties.",
+  "market_blurb": "string, 2-3 short paragraphs separated by \\n\\n. What it's like to buy or sell here, who lives here, what makes the market distinct. Mention the agent's relevant specialties. Describe market conditions qualitatively only (no numbers, prices, or ratings).",
   "faqs": [ { "q": "string", "a": "string, 2-4 sentences" }, ... exactly 5 entries ],
   "meta_title": "string, under 60 chars. Format: '${area.name} Real Estate | {Agent Name}' or similar.",
   "meta_description": "string, under 160 chars. Mentions ${area.name} and the agent."
