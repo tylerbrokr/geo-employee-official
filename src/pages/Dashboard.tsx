@@ -12,7 +12,8 @@ import { nextScheduledPost, weekdayList, formatPublishDate } from "@/lib/autopil
 export default function Dashboard() {
   const { user } = useAuth();
   const { client, site, isLive, liveUrl } = useClient();
-  const needsCustomDomain = !!client && !site?.custom_domain;
+  const customDomain = site?.custom_domain ?? null;
+  const customDomainLive = !!(customDomain && site?.dns_verified);
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
@@ -55,20 +56,24 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {needsCustomDomain && (
-          <div
-            className="mb-6 px-6 py-5 border border-ink/[0.08] flex items-start justify-between gap-6"
-            style={{ background: "#faf8f4" }}
-          >
-            <div className="min-w-0">
-              <p className="section-label mb-1">CONNECT A CUSTOM DOMAIN</p>
-              <p className="text-sm text-ink leading-relaxed">
-                Subdomains carry less trust with search engines and AI crawlers. A custom domain strengthens your authority signal.
-              </p>
+        {client && (
+          <div className="mb-6 px-6 py-4 border border-ink/[0.08] flex items-center justify-between gap-6">
+            <div className="min-w-0 flex items-center gap-3">
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: customDomainLive ? "#c9a96e" : customDomain ? "hsl(45 90% 50%)" : "hsl(220 9% 60%)" }}
+              />
+              <div className="min-w-0">
+                <p className="section-label">YOUR DOMAIN</p>
+                <p className="text-sm text-ink mt-1 truncate">
+                  {customDomainLive
+                    ? customDomain
+                    : customDomain
+                    ? `${customDomain} — DNS propagating`
+                    : "Domain setup in progress"}
+                </p>
+              </div>
             </div>
-            <Link to="/portal/my-site" className="shrink-0 text-sm font-medium text-gold hover:underline whitespace-nowrap mt-0.5">
-              Set up your domain →
-            </Link>
           </div>
         )}
 

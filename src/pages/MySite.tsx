@@ -4,8 +4,6 @@ import { useClient } from "@/hooks/useClient";
 import { SiteBuildStatus } from "@/components/SiteBuildStatus";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Copy } from "lucide-react";
-import { toast } from "sonner";
 
 const SUBDOMAIN_HOST = "mygeosite.com";
 
@@ -22,10 +20,6 @@ export default function MySite() {
   const subUrl = site?.subdomain ? `https://${site.subdomain}.${SUBDOMAIN_HOST}` : null;
   const customLive = !!(site?.custom_domain && site?.dns_verified);
   const liveUrl = customLive ? `https://${site.custom_domain}` : subUrl;
-  const dns = site?.dns_records as any;
-  const showDnsInstructions = !!(site?.custom_domain && !site?.dns_verified && dns);
-
-  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
 
   return (
     <DashboardLayout>
@@ -46,9 +40,13 @@ export default function MySite() {
                     <p className="text-sm text-muted-foreground">Setting up...</p>
                   )}
                   <div className="mt-3 flex items-center gap-2 text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: customLive || (subUrl && !site.custom_domain) ? "#c9a96e" : "hsl(220 9% 60%)" }} />
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: customLive ? "#c9a96e" : site.custom_domain ? "hsl(45 90% 50%)" : "hsl(220 9% 60%)" }} />
                     <span className="text-muted-foreground">
-                      {customLive ? `Live at ${site.custom_domain}` : site.custom_domain ? "Custom domain pending" : "Live"}
+                      {customLive
+                        ? `Live at ${site.custom_domain}`
+                        : site.custom_domain
+                        ? `${site.custom_domain} — DNS propagating`
+                        : "Domain setup in progress. Our team handles this for you."}
                     </span>
                   </div>
                 </div>
