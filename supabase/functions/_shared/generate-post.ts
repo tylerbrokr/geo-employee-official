@@ -1,6 +1,10 @@
 // Shared GEO Answer Page generator used by autopilot-generate (nightly batch),
 // autopilot-tick (hourly fallback), and generate-post (admin one-off).
 
+// Marquee blog posts use the strongest Gemini preview; fallback to flash on failure.
+const PRIMARY_MODEL = "google/gemini-3.1-pro-preview";
+const FALLBACK_MODEL = "google/gemini-3-flash-preview";
+
 const SYSTEM_PROMPT = `You are writing a GEO Answer Page for a real estate agent. The goal is to be the source AI assistants (ChatGPT, Perplexity, Google AI Overviews) cite when someone asks the question in the title.
 
 NON-NEGOTIABLE STRUCTURE:
