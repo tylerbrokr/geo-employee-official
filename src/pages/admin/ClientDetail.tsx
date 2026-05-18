@@ -488,6 +488,25 @@ export default function AdminClientDetail() {
   );
 }
 
+// Minimum viable fields before an admin can flip autopilot on. Mirrors what
+// the renderer and LLM schema citations need to look credible on day one.
+function computeCompleteness(client: any, market: any) {
+  const checks = [
+    { key: "phone_e164", label: "Public phone number (E.164)", pass: !!client?.phone_e164 },
+    { key: "street_address", label: "Street address", pass: !!client?.street_address },
+    { key: "city", label: "City", pass: !!client?.city },
+    { key: "state", label: "State", pass: !!client?.state },
+    { key: "primary_city", label: "Primary market city", pass: !!market?.primary_city },
+    { key: "headshot_or_logo", label: "Headshot or logo uploaded", pass: !!(client?.headshot_url || client?.logo_url) },
+  ];
+  return {
+    ready: checks.every((c) => c.pass),
+    checks,
+    missing: checks.filter((c) => !c.pass).map((c) => c.label),
+  };
+}
+}
+
 // NAP (Name / Address / Phone) — public-facing data the renderer cites for LLM
 // authority and LocalBusiness schema. Not collected in onboarding because it's
 // optional and admin-curated.
