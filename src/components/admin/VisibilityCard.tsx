@@ -56,16 +56,39 @@ export function VisibilityCard({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [site, setSite] = useState<{ last_indexnow_at: string | null; last_indexnow_count: number | null } | null>(null);
+  const [days, setDays] = useState<number[]>([]);
+  const [bufferCount, setBufferCount] = useState<number>(0);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("client_visibility_reports")
-      .select("*")
-      .eq("client_id", clientId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setReport(data as any);
+    const [{ data: r }, { data: s }, { data: c }, { count }] = await Promise.all([
+      supabase
+        .from("client_visibility_reports")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("client_sites")
+        .select("last_indexnow_at,last_indexnow_count")
+        .eq("client_id", clientId)
+        .maybeSingle(),
+      supabase
+        .from("clients")
+        .select("autopilot_days,autopilot_enabled")
+        .eq("id", clientId)
+        .maybeSingle(),
+      supabase
+        .from("posts")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .in("status", ["draft", "pending_review", "scheduled"]),
+    ]);
+    setReport(r as any);
+    setSite((s as any) ?? null);
+    setDays(((c as any)?.autopilot_days ?? []) as number[]);
+    setBufferCount(count ?? 0);
     setLoading(false);
   };
 
