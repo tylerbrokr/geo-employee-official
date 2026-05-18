@@ -37,6 +37,8 @@ export default function AdminClientDetail() {
   const [goingLive, setGoingLive] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [overrideReadiness, setOverrideReadiness] = useState(false);
+  const [overrideBanner, setOverrideBanner] = useState<string[] | null>(null);
 
   const deleteClient = async () => {
     if (!clientId) return;
