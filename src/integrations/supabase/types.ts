@@ -194,6 +194,9 @@ export type Database = {
           dns_records: Json | null
           dns_verified: boolean
           id: string
+          indexnow_key: string | null
+          last_indexnow_at: string | null
+          last_indexnow_count: number | null
           last_verified_at: string | null
           provisioned_at: string | null
           ssl_status: string | null
@@ -211,6 +214,9 @@ export type Database = {
           dns_records?: Json | null
           dns_verified?: boolean
           id?: string
+          indexnow_key?: string | null
+          last_indexnow_at?: string | null
+          last_indexnow_count?: number | null
           last_verified_at?: string | null
           provisioned_at?: string | null
           ssl_status?: string | null
@@ -228,6 +234,9 @@ export type Database = {
           dns_records?: Json | null
           dns_verified?: boolean
           id?: string
+          indexnow_key?: string | null
+          last_indexnow_at?: string | null
+          last_indexnow_count?: number | null
           last_verified_at?: string | null
           provisioned_at?: string | null
           ssl_status?: string | null
@@ -377,6 +386,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           autopilot_day: number | null
+          autopilot_days: number[]
           autopilot_enabled: boolean
           autopilot_started_at: string | null
           brokerage: string | null
@@ -409,6 +419,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           autopilot_day?: number | null
+          autopilot_days?: number[]
           autopilot_enabled?: boolean
           autopilot_started_at?: string | null
           brokerage?: string | null
@@ -441,6 +452,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           autopilot_day?: number | null
+          autopilot_days?: number[]
           autopilot_enabled?: boolean
           autopilot_started_at?: string | null
           brokerage?: string | null
@@ -579,6 +591,39 @@ export type Database = {
             referencedColumns: ["client_id"]
           },
         ]
+      }
+      nap_checklist: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          item_key: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_key: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_key?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       posts: {
         Row: {
