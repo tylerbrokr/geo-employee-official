@@ -78,12 +78,6 @@ const ClientIntakeInviteEmail = (props: IntakeInviteProps) => {
             <Button href={link} style={ctaButton}>{ctaLabel}</Button>
           </Section>
 
-          <Text style={fineprint}>
-            Or paste this link into your browser:
-            <br />
-            <Link href={link} style={linkStyle}>{link}</Link>
-          </Text>
-
           <Section style={hr} />
 
           <Text style={signature}>
