@@ -10,7 +10,17 @@ const navItems = [
   { label: "Posts", path: "/portal/posts", icon: PostsIcon },
   { label: "My Site", path: "/portal/my-site", icon: SiteIcon },
   { label: "Market", path: "/portal/market", icon: MarketIcon },
+  { label: "Profiles", path: "/portal/profiles", icon: ProfilesIcon },
 ];
+
+function ProfilesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="square" strokeLinejoin="miter">
+      <path d="M2.5 15.5l3-3 2.5 2 4-4 3.5 3" />
+      <rect x="1.5" y="2.5" width="15" height="13" />
+    </svg>
+  );
+}
 
 function DashboardIcon({ className }: { className?: string }) {
   return (
