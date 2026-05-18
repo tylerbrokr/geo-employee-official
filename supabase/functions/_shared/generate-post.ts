@@ -14,7 +14,7 @@ NON-NEGOTIABLE STRUCTURE:
 3. Then 3-4 H2 sections. EVERY H2 IS A QUESTION someone would naturally ask next. Not a topic label.
    - Bad: "## Neighborhood Overview"
    - Good: "## Which Edina neighborhoods are best for first-time buyers?"
-4. Each H2 section is 2-3 SELF-CONTAINED paragraphs. Cover up everything else on the page — each paragraph must still make a complete, useful point on its own. Include specific data: numbers, price bands, school districts, neighborhood names, street names, timeframes.
+4. Each H2 section is 2-3 SELF-CONTAINED paragraphs. Cover up everything else on the page — each paragraph must still make a complete, useful point on its own. Include specific, durable details: named neighborhoods, street names, landmarks, timeframes, property types.
 5. End with "## About {Agent Name}" — 2-3 sentences with E-E-A-T signals (years in business, geographic specialization, ideal client, what makes them uniquely qualified to answer THIS question).
 6. After the About section, on its own line, output the agent's plain-text contact block: name, brokerage, address, phone — one per line, no labels like "Phone:" required, no CTA language.
 
