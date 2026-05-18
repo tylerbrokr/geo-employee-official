@@ -130,6 +130,16 @@ export default function AdminClientDetail() {
 
   const goLive = async () => {
     if (!clientId) return;
+    const completeness = computeCompleteness(client, market);
+    if (!completeness.ready) {
+      if (!overrideReadiness) return;
+      const ok = confirm(
+        `This client is missing: ${completeness.missing.join(", ")}.\n\nGo live anyway?`
+      );
+      if (!ok) return;
+      console.warn(`[goLive override] client=${clientId} missing=${completeness.missing.join(", ")}`);
+      setOverrideBanner(completeness.missing);
+    }
     setGoingLive(true);
     const existing: number[] = Array.isArray(client?.autopilot_days) ? client.autopilot_days : [];
     const todayDow = new Date().getUTCDay();
