@@ -13,6 +13,7 @@ import { MarketsCard } from "@/components/admin/MarketsCard";
 import { VisibilityCard } from "@/components/admin/VisibilityCard";
 import { PublishDaysCard, formatPublishDays } from "@/components/admin/PublishDaysCard";
 import { NapChecklist } from "@/components/NapChecklist";
+import { EngineLog } from "@/components/EngineLog";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
