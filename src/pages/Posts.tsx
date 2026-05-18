@@ -39,7 +39,7 @@ export default function Posts() {
     });
 
   const next = nextScheduledPost(posts);
-  const weekday = weekdayName(client?.autopilot_day);
+  const weekday = weekdayList(client?.autopilot_days, "long");
 
   return (
     <DashboardLayout>
@@ -49,7 +49,7 @@ export default function Posts() {
           <p className="section-label mt-2">{posts.filter((p) => p.status === "published").length} POSTS PUBLISHED</p>
           {next && (
             <p className="text-sm text-muted-foreground mt-2">
-              {weekday ? `Posts publish weekly on ${weekday}s. ` : ""}Next post: {formatPublishDate(next.scheduled_for)}.
+              {weekday ? `Posts publish on ${weekday}. ` : ""}Next post: {formatPublishDate(next.scheduled_for)}.
             </p>
           )}
         </div>
