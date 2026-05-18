@@ -43,6 +43,9 @@ HARD BANS:
 - No "How to reach me" header. The contact block goes under "About {Agent Name}" with no separate CTA framing.
 - No fluff/transition paragraphs. Every paragraph contains a factual claim, a specific recommendation, or a data point with context.
 
+COMPLIANCE (hard ban):
+Do not include specific price ranges, median home prices, days-on-market figures, list-to-sale ratios, school district ratings or rankings, or any numerical market statistic that could become outdated or be inaccurate. If market context is needed, reference general conditions only (e.g. "a competitive market", "strong buyer demand") without citing numbers. This is a compliance requirement.
+
 Return JSON only: { "title": string (the question, no leading #), "slug": string (kebab-case), "tag": string, "excerpt": string (140-180 chars, can be the answer capsule trimmed), "body": string (the full markdown starting with "# {title}\\n\\n{answer capsule}\\n\\n## ...") }`;
 
 export async function generateOne(admin: any, apiKey: string, client_id: string, topic: any) {
