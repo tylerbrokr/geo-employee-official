@@ -179,6 +179,16 @@ Deno.serve(async (req) => {
       napFilled >= 3 ? 3 : 0,
     ));
 
+    const napDone = (napItems ?? []).filter((r: any) => r.status === "done").length;
+    const napTotal = (napItems ?? []).length || 6;
+    checks.push(check(
+      "nap_consistency", "Profile NAP verified across GMB, Bing, Zillow, Realtor, Facebook", "profile", 5,
+      napDone >= 5 ? true : napDone >= 3 ? "partial" : false,
+      `${napDone}/${napTotal} profile checklist items confirmed`,
+      "Have the client open Portal → Profiles and confirm each item matches the canonical NAP.",
+      napDone >= 3 ? 3 : 0,
+    ));
+
     const headshot = !!client.headshot_url;
     const logo = !!client.logo_url;
     checks.push(check(
