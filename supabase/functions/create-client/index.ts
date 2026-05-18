@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, full_name, first_name, last_name, business_name, resend } = await req.json();
+    const { email, full_name, first_name, last_name, business_name, domain_preference, resend } = await req.json();
     if (!email || typeof email !== "string") {
       return json({ error: "email required" }, 400);
     }
@@ -76,13 +76,20 @@ Deno.serve(async (req) => {
     if (!clientId) {
       const { data: newClient, error: clErr } = await admin
         .from("clients")
-        .insert({ owner_user_id: userId, business_name: business_name ?? null })
+        .insert({
+          owner_user_id: userId,
+          business_name: business_name ?? null,
+          domain_preference: domain_preference ?? null,
+        })
         .select("id")
         .single();
       if (clErr) throw clErr;
       clientId = newClient.id;
-    } else if (business_name) {
-      await admin.from("clients").update({ business_name }).eq("id", clientId);
+    } else {
+      const patch: Record<string, unknown> = {};
+      if (business_name) patch.business_name = business_name;
+      if (domain_preference) patch.domain_preference = domain_preference;
+      if (Object.keys(patch).length) await admin.from("clients").update(patch).eq("id", clientId);
     }
 
     // Ensure intake_status row

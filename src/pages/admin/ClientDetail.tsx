@@ -30,6 +30,7 @@ export default function AdminClientDetail() {
   const [client, setClient] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [market, setMarket] = useState<any>(null);
+  const [site, setSite] = useState<any>(null);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
@@ -61,18 +62,20 @@ export default function AdminClientDetail() {
     const { data: c } = await supabase.from("clients").select("*").eq("id", clientId).maybeSingle();
     setClient(c);
     if (c) {
-      const [{ data: p }, { data: m }, { data: sp }, { data: po }, { data: tp }] = await Promise.all([
+      const [{ data: p }, { data: m }, { data: sp }, { data: po }, { data: tp }, { data: st }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", c.owner_user_id).maybeSingle(),
         supabase.from("client_markets").select("*").eq("client_id", c.id).maybeSingle(),
         supabase.from("client_specialties").select("specialty").eq("client_id", c.id),
         supabase.from("posts").select("*").eq("client_id", c.id).order("created_at", { ascending: false }),
         supabase.from("client_topics").select("*").eq("client_id", c.id).order("position", { ascending: true }),
+        supabase.from("client_sites").select("custom_domain,dns_verified,subdomain").eq("client_id", c.id).maybeSingle(),
       ]);
       setProfile(p);
       setMarket(m);
       setSpecialties((sp ?? []).map((s: any) => s.specialty));
       setPosts(po ?? []);
       setTopics(tp ?? []);
+      setSite(st);
     }
   };
 
@@ -131,7 +134,7 @@ export default function AdminClientDetail() {
 
   const goLive = async () => {
     if (!clientId) return;
-    const completeness = computeCompleteness(client, market);
+    const completeness = computeCompleteness(client, market, site);
     if (!completeness.ready) {
       if (!overrideReadiness) return;
       const ok = confirm(
@@ -186,7 +189,7 @@ export default function AdminClientDetail() {
 
   const stage = client.pipeline_stage ?? "draft";
   const queuedCount = topics.filter((t) => t.status === "queued").length;
-  const completeness = computeCompleteness(client, market);
+  const completeness = computeCompleteness(client, market, site);
   const stageReady = stage === "topics_ready" || (queuedCount >= 1 && !client.autopilot_enabled);
   const canGoLive = stageReady && (completeness.ready || overrideReadiness);
 
@@ -496,7 +499,7 @@ export default function AdminClientDetail() {
 
 // Minimum viable fields before an admin can flip autopilot on. Mirrors what
 // the renderer and LLM schema citations need to look credible on day one.
-function computeCompleteness(client: any, market: any) {
+function computeCompleteness(client: any, market: any, site: any) {
   const checks = [
     { key: "phone_e164", label: "Public phone number (E.164)", pass: !!client?.phone_e164 },
     { key: "street_address", label: "Street address", pass: !!client?.street_address },
@@ -504,6 +507,7 @@ function computeCompleteness(client: any, market: any) {
     { key: "state", label: "State", pass: !!client?.state },
     { key: "primary_city", label: "Primary market city", pass: !!market?.primary_city },
     { key: "headshot_or_logo", label: "Headshot or logo uploaded", pass: !!(client?.headshot_url || client?.logo_url) },
+    { key: "custom_domain", label: "Custom domain entered", pass: !!site?.custom_domain },
   ];
   return {
     ready: checks.every((c) => c.pass),

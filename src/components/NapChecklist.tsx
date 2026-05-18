@@ -57,9 +57,9 @@ const ITEMS: ItemMeta[] = [
   },
   {
     key: "custom_domain_connected",
-    title: "Custom domain connected",
-    url: "/portal/my-site",
-    how: "Connect a custom domain on the My Site page. DNS verified and SSL active. Subdomains carry less trust with search engines and AI crawlers.",
+    title: "Custom domain live",
+    url: "",
+    how: "Your custom domain is purchased and configured by our team. This auto-checks when DNS verification completes. No action needed from you.",
   },
 ];
 
@@ -180,9 +180,11 @@ export function NapChecklist({ clientId }: { clientId: string }) {
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${isDone ? "line-through text-ink/40" : ""}`}>{meta.title}</div>
                     <div className="text-xs text-ink/50 mt-1">{meta.how}</div>
-                    <a href={meta.url} target={meta.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
-                      Open {meta.url.startsWith("http") ? new URL(meta.url).hostname.replace("www.", "") : meta.url} →
-                    </a>
+                    {meta.url && (
+                      <a href={meta.url} target={meta.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
+                        Open {meta.url.startsWith("http") ? new URL(meta.url).hostname.replace("www.", "") : meta.url} →
+                      </a>
+                    )}
                   </div>
                 </div>
                 {i < ITEMS.length - 1 && <div className="fading-divider mx-6" />}

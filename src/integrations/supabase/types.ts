@@ -395,6 +395,7 @@ export type Database = {
           city: string | null
           created_at: string
           differentiators: string | null
+          domain_preference: string | null
           headshot_url: string | null
           id: string
           ideal_client: string | null
@@ -428,6 +429,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           differentiators?: string | null
+          domain_preference?: string | null
           headshot_url?: string | null
           id?: string
           ideal_client?: string | null
@@ -461,6 +463,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           differentiators?: string | null
+          domain_preference?: string | null
           headshot_url?: string | null
           id?: string
           ideal_client?: string | null
