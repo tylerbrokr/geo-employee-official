@@ -11,6 +11,8 @@ import { SiteCopyTab } from "@/components/admin/SiteCopyTab";
 import { AreasTab } from "@/components/admin/AreasTab";
 import { MarketsCard } from "@/components/admin/MarketsCard";
 import { VisibilityCard } from "@/components/admin/VisibilityCard";
+import { PublishDaysCard, formatPublishDays } from "@/components/admin/PublishDaysCard";
+import { NapChecklist } from "@/components/NapChecklist";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -127,10 +129,13 @@ export default function AdminClientDetail() {
   const goLive = async () => {
     if (!clientId) return;
     setGoingLive(true);
+    const existing: number[] = Array.isArray(client?.autopilot_days) ? client.autopilot_days : [];
     const todayDow = new Date().getUTCDay();
+    const days = existing.length ? existing : [todayDow, (todayDow + 3) % 7].sort((a, b) => a - b);
     const { error } = await supabase.from("clients").update({
       autopilot_enabled: true,
       autopilot_day: todayDow,
+      autopilot_days: days,
       autopilot_started_at: new Date().toISOString(),
       pipeline_stage: "autopilot",
     }).eq("id", clientId);
