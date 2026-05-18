@@ -80,11 +80,39 @@ export function NapChecklist({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [{ data: rows }, { data: c }] = await Promise.all([
+    const [{ data: rows }, { data: c }, { data: siteRow }] = await Promise.all([
       supabase.from("nap_checklist").select("*").eq("client_id", clientId),
       supabase.from("clients").select("phone_e164,street_address,city,state,postal_code,business_name,brokerage,owner_user_id").eq("id", clientId).maybeSingle(),
+      supabase.from("client_sites").select("custom_domain,dns_verified").eq("client_id", clientId).maybeSingle(),
     ]);
-    setItems((rows as NapItem[]) ?? []);
+    const rowList = (rows as NapItem[]) ?? [];
+
+    // Silent auto-mark: if a custom domain is connected and DNS-verified, flip the
+    // checklist item to done in the background without a loading flash.
+    const domainLive = !!(siteRow?.custom_domain && siteRow?.dns_verified);
+    const domainItem = rowList.find((r) => r.item_key === "custom_domain_connected");
+    if (domainLive && domainItem && domainItem.status !== "done") {
+      const now = new Date().toISOString();
+      domainItem.status = "done";
+      domainItem.completed_at = now;
+      // Fire-and-forget; UI already shows done.
+      supabase
+        .from("nap_checklist")
+        .update({ status: "done", completed_at: now })
+        .eq("id", domainItem.id)
+        .then(() => {});
+    } else if (!domainLive && domainItem && domainItem.status === "done" && !domainItem.notes) {
+      // Auto-revert if domain was disconnected (skip if admin left a manual note).
+      domainItem.status = "pending";
+      domainItem.completed_at = null;
+      supabase
+        .from("nap_checklist")
+        .update({ status: "pending", completed_at: null })
+        .eq("id", domainItem.id)
+        .then(() => {});
+    }
+
+    setItems(rowList);
     if (c) {
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", (c as any).owner_user_id).maybeSingle();
       setNap({ ...c, full_name: profile?.full_name ?? null } as NapData);
