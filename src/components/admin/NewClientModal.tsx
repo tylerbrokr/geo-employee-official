@@ -18,6 +18,7 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [domainPreference, setDomainPreference] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [magicLink, setMagicLink] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<boolean>(false);
@@ -25,7 +26,7 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
   const [recipientEmail, setRecipientEmail] = useState<string>("");
 
   const reset = () => {
-    setEmail(""); setFirstName(""); setLastName(""); setBusinessName("");
+    setEmail(""); setFirstName(""); setLastName(""); setBusinessName(""); setDomainPreference("");
     setMagicLink(null); setEmailSent(false); setEmailError(null); setRecipientEmail("");
   };
 
@@ -40,6 +41,7 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
         last_name: lastName.trim() || null,
         full_name: fullName || null,
         business_name: businessName,
+        domain_preference: domainPreference.trim() || null,
       },
     });
     setSubmitting(false);
@@ -114,6 +116,15 @@ export function NewClientModal({ open, onOpenChange, onCreated }: Props) {
             <div>
               <Label className="text-[13px] mb-1.5 block">Business name (optional)</Label>
               <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-[13px] mb-1.5 block">Domain preference (optional)</Label>
+              <Input
+                value={domainPreference}
+                onChange={(e) => setDomainPreference(e.target.value)}
+                placeholder="e.g. janesmithrealty.com"
+              />
+              <p className="text-xs text-ink/50 mt-1">We purchase and configure the domain. This is just a note for the team.</p>
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
