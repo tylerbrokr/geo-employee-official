@@ -51,6 +51,11 @@ function relTime(iso: string): string {
   return `${Math.floor(h / 24)} d ago`;
 }
 
+const DAY_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function formatDays(days: number[]): string {
+  return [...days].sort((a,b)=>a-b).map(d => DAY_SHORT[d]).filter(Boolean).join("/");
+}
+
 export function VisibilityCard({ clientId }: { clientId: string }) {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
