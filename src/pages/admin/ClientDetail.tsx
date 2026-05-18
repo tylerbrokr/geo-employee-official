@@ -505,7 +505,7 @@ function computeCompleteness(client: any, market: any) {
     missing: checks.filter((c) => !c.pass).map((c) => c.label),
   };
 }
-}
+
 
 // NAP (Name / Address / Phone) — public-facing data the renderer cites for LLM
 // authority and LocalBusiness schema. Not collected in onboarding because it's
