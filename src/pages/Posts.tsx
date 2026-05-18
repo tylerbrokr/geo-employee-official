@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useClient } from "@/hooks/useClient";
 import { SiteBuildStatus } from "@/components/SiteBuildStatus";
-import { nextScheduledPost, weekdayName, formatPublishDate } from "@/lib/autopilot";
+import { nextScheduledPost, weekdayList, formatPublishDate } from "@/lib/autopilot";
 
 type Tab = "All" | "Published" | "Scheduled";
 
