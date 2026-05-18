@@ -38,8 +38,8 @@ const DEFAULTS = {
   eyebrow: 'WEEKLY GEO REPORT',
   headline: 'Your Inner Cirql GEO report',
   cta_label: 'Open your dashboard',
-  signature_line_1: '— Blake & Tyler',
-  signature_line_2: '',
+  signature_line_1: 'Blake and Tyler',
+  signature_line_2: 'The Inner Cirql',
 }
 
 const WeeklyClientDigestEmail = (props: WeeklyDigestProps) => {
@@ -310,6 +310,7 @@ const signature: React.CSSProperties = {
   color: ink,
   lineHeight: 1.6,
   margin: 0,
+  fontWeight: 600,
 }
 
 const signatureMuted: React.CSSProperties = {

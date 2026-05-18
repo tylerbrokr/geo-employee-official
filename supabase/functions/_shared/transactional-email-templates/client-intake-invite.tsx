@@ -6,7 +6,6 @@ import {
   Head,
   Heading,
   Html,
-  Link,
   Preview,
   Section,
   Text,
@@ -34,7 +33,7 @@ const DEFAULTS = {
     'Once you finish, your site goes into production and posts begin publishing on your schedule.',
   ],
   cta_label: 'Open the intake',
-  signature_line_1: 'The GEO team',
+  signature_line_1: 'Blake and Tyler',
   signature_line_2: 'The Inner Cirql',
 }
 
@@ -77,12 +76,6 @@ const ClientIntakeInviteEmail = (props: IntakeInviteProps) => {
           <Section style={ctaWrap}>
             <Button href={link} style={ctaButton}>{ctaLabel}</Button>
           </Section>
-
-          <Text style={fineprint}>
-            Or paste this link into your browser:
-            <br />
-            <Link href={link} style={linkStyle}>{link}</Link>
-          </Text>
 
           <Section style={hr} />
 
@@ -205,6 +198,7 @@ const signature: React.CSSProperties = {
   color: ink,
   lineHeight: 1.6,
   margin: 0,
+  fontWeight: 600,
 }
 
 const signatureMuted: React.CSSProperties = {
