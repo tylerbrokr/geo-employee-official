@@ -163,6 +163,19 @@ export function VisibilityCard({ clientId }: { clientId: string }) {
         <div className="h-full transition-all" style={{ width: `${report.total_score}%`, background: b.color }} />
       </div>
 
+      <div className="text-xs text-muted-foreground mb-4 flex flex-wrap gap-x-4 gap-y-1">
+        <span>
+          autopilot{" "}
+          {days.length ? <span className="font-medium text-foreground">on · {formatDays(days)} · {bufferCount} buffered draft{bufferCount === 1 ? "" : "s"}</span> : <span className="font-medium text-foreground">off</span>}
+        </span>
+        <span>
+          IndexNow:{" "}
+          {site?.last_indexnow_at
+            ? <span className="font-medium text-foreground">last ping {relTime(site.last_indexnow_at)} · {site.last_indexnow_count ?? 0} URL{(site.last_indexnow_count ?? 0) === 1 ? "" : "s"}</span>
+            : <span className="font-medium text-foreground">no pings yet</span>}
+        </span>
+      </div>
+
       <div className="grid grid-cols-4 gap-3">
         {catData.map(({ c, points, max, failing }) => (
           <div key={c} className="border-l border-border pl-3">
