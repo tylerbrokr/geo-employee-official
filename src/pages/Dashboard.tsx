@@ -89,7 +89,7 @@ export default function Dashboard() {
             <p className="text-sm font-medium">{nextPost.title}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Publishes {formatPublishDate(nextPost.scheduled_for)}
-              {weekday ? `. Posts go live weekly on ${weekday}s.` : "."}
+              {weekday ? `. Posts go live on ${weekday}.` : "."}
             </p>
           </div>
         )}
