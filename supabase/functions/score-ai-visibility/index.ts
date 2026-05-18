@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
       { data: specialties },
       { data: areas },
       { data: posts },
+      { data: napItems },
     ] = await Promise.all([
       admin.from("clients").select("*").eq("id", client_id).maybeSingle(),
       admin.from("client_markets").select("*").eq("client_id", client_id).maybeSingle(),
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
       admin.from("client_specialties").select("specialty").eq("client_id", client_id),
       admin.from("client_areas").select("*").eq("client_id", client_id),
       admin.from("posts").select("*").eq("client_id", client_id),
+      admin.from("nap_checklist").select("item_key,status").eq("client_id", client_id),
     ]);
 
     if (!client) return json({ error: "client not found" }, 404);
