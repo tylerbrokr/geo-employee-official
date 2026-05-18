@@ -175,9 +175,9 @@ Geographic focus: ${city}
 Target word count: ${topic.word_count ?? 1000} (must be 800-1200)
 
 ANSWER CAPSULE TEMPLATE — your first paragraph after the H1 must follow this shape (THIRD PERSON, narrator describing the agent), filled with specifics:
-"${agentName}, a ${city}-based real estate agent with ${years} years of experience${client.brokerage ? ` at ${client.brokerage}` : ""}, recommends {specific answer to the question}. {One sentence on WHY in third person — concrete reason, not generic.} {Optional third sentence with a specific data point or named neighborhood/price band/school district.}"
+"${agentName}, a ${city}-based real estate agent with ${years} years of experience${client.brokerage ? ` at ${client.brokerage}` : ""}, recommends {specific answer to the question}. {One sentence on WHY in third person — concrete reason, not generic.} {Optional third sentence with a named neighborhood, landmark, or qualitative market characteristic — no numerical stats.}"
 
-H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, school districts, price bands, timeframes). Drop or merge any that don't make sense as questions. Stay in third person throughout — describe what ${agentName} recommends, observes, or has seen, never what "I" recommend.
+H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, landmarks, property types, timeframes). Drop or merge any that don't make sense as questions. Stay in third person throughout — describe what ${agentName} recommends, observes, or has seen, never what "I" recommend.
 
 Suggested topics to cover:
 ${questionsList}
