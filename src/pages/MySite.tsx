@@ -65,46 +65,6 @@ export default function MySite() {
                 </div>
               </div>
             </div>
-
-            {showDnsInstructions && (
-              <div className="findr-card space-y-4">
-                <div>
-                  <p className="section-label mb-1">CONNECT YOUR CUSTOM DOMAIN</p>
-                  <p className="text-sm text-muted-foreground">
-                    Add these two records at your registrar. We'll detect them within 5 minutes.
-                  </p>
-                </div>
-                {dns.cname && (
-                  <div className="bg-[hsl(40_30%_96%)] p-4 border border-input">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">CNAME record</div>
-                    <div className="grid grid-cols-[80px_1fr_auto] gap-3 text-sm items-center">
-                      <span className="text-muted-foreground">Name</span>
-                      <code className="text-xs">{dns.cname.name}</code>
-                      <button onClick={() => copy(dns.cname.name)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
-                      <span className="text-muted-foreground">Value</span>
-                      <code className="text-xs">{dns.cname.value}</code>
-                      <button onClick={() => copy(dns.cname.value)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </div>
-                )}
-                {dns.ownership_txt && (
-                  <div className="bg-[hsl(40_30%_96%)] p-4 border border-input">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">TXT record (ownership)</div>
-                    <div className="grid grid-cols-[80px_1fr_auto] gap-3 text-sm items-center">
-                      <span className="text-muted-foreground">Name</span>
-                      <code className="text-xs break-all">{dns.ownership_txt.name}</code>
-                      <button onClick={() => copy(dns.ownership_txt.name)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
-                      <span className="text-muted-foreground">Value</span>
-                      <code className="text-xs break-all">{dns.ownership_txt.value}</code>
-                      <button onClick={() => copy(dns.ownership_txt.value)} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Your subdomain {subUrl} stays live the whole time. The custom domain will switch on once verified.
-                </p>
-              </div>
-            )}
           </div>
         )}
       </motion.div>
