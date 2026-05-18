@@ -55,6 +55,23 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {needsCustomDomain && (
+          <div
+            className="mb-6 px-6 py-5 border border-ink/[0.08] flex items-start justify-between gap-6"
+            style={{ background: "#faf8f4" }}
+          >
+            <div className="min-w-0">
+              <p className="section-label mb-1">CONNECT A CUSTOM DOMAIN</p>
+              <p className="text-sm text-ink leading-relaxed">
+                Subdomains carry less trust with search engines and AI crawlers. A custom domain strengthens your authority signal.
+              </p>
+            </div>
+            <Link to="/portal/my-site" className="shrink-0 text-sm font-medium text-gold hover:underline whitespace-nowrap mt-0.5">
+              Set up your domain →
+            </Link>
+          </div>
+        )}
+
         {isLive ? (
           <div className="findr-card-elevated mb-8">
             <div className="flex items-center justify-between">
