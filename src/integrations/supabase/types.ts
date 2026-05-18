@@ -928,6 +928,7 @@ export type Database = {
           agent_display_name: string | null
           client_id: string | null
           custom_domain: string | null
+          indexnow_key: string | null
           provisioned_at: string | null
           ssl_status: string | null
           subdomain: string | null
@@ -936,6 +937,7 @@ export type Database = {
           agent_display_name?: string | null
           client_id?: string | null
           custom_domain?: string | null
+          indexnow_key?: string | null
           provisioned_at?: string | null
           ssl_status?: string | null
           subdomain?: string | null
@@ -944,6 +946,7 @@ export type Database = {
           agent_display_name?: string | null
           client_id?: string | null
           custom_domain?: string | null
+          indexnow_key?: string | null
           provisioned_at?: string | null
           ssl_status?: string | null
           subdomain?: string | null
