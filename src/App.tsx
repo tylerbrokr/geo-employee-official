@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/portal/my-site" element={<RoleGate require="client"><MySite /></RoleGate>} />
             <Route path="/portal/market" element={<RoleGate require="client"><Market /></RoleGate>} />
             <Route path="/portal/profiles" element={<RoleGate require="client"><Profiles /></RoleGate>} />
+            <Route path="/portal/engine" element={<RoleGate require="client"><Engine /></RoleGate>} />
             <Route path="/portal/account" element={<RoleGate require="client"><Account /></RoleGate>} />
 
             {/* Admin */}
