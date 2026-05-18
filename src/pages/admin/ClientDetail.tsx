@@ -275,7 +275,12 @@ export default function AdminClientDetail() {
           <TabsTrigger value="copy">Site copy</TabsTrigger>
           <TabsTrigger value="areas">Areas</TabsTrigger>
           <TabsTrigger value="profiles">Profiles</TabsTrigger>
+          <TabsTrigger value="engine">Engine</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="engine" className="mt-6">
+          {clientId && <EngineLog clientId={clientId} limit={50} />}
+        </TabsContent>
 
         <TabsContent value="profiles" className="mt-6">
           {clientId && <NapChecklist clientId={clientId} />}
