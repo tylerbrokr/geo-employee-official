@@ -11,6 +11,7 @@ const SUBDOMAIN_HOST = "mygeosite.com";
 
 export function DomainTab({ clientId }: Props) {
   const [site, setSite] = useState<any>(null);
+  const [client, setClient] = useState<any>(null);
   const [purges, setPurges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -18,12 +19,14 @@ export function DomainTab({ clientId }: Props) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { data: p }] = await Promise.all([
+    const [{ data: s }, { data: p }, { data: c }] = await Promise.all([
       supabase.from("client_sites").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("site_cache_purges").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("clients").select("domain_preference").eq("id", clientId).maybeSingle(),
     ]);
     setSite(s);
     setPurges(p ?? []);
+    setClient(c);
     setLoading(false);
   };
 
@@ -61,7 +64,7 @@ export function DomainTab({ clientId }: Props) {
   };
 
   const removeDomain = async () => {
-    if (!confirm("Disconnect this domain? The site will stay live on the subdomain.")) return;
+    if (!confirm("Disconnect this domain? Only do this if we're replacing it.")) return;
     setBusy("remove");
     const { data, error } = await supabase.functions.invoke("remove-custom-hostname", {
       body: { client_id: clientId },
@@ -172,7 +175,12 @@ export function DomainTab({ clientId }: Props) {
 
         {!hasHostname && (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Connect a domain the agent owns. We'll provision SSL automatically once DNS is in place.</p>
+            <p className="text-sm text-muted-foreground">Enter the domain we purchased for this client. We provision SSL automatically once DNS is in place.</p>
+            {client?.domain_preference && (
+              <p className="text-xs text-ink/60">
+                Domain preference from intake: <span className="font-medium text-ink">{client.domain_preference}</span>
+              </p>
+            )}
             <div className="flex gap-2">
               <Input
                 placeholder="www.yourdomain.com"
