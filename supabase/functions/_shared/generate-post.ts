@@ -57,15 +57,18 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
 
   const userPrompt = buildUserPrompt({ topic, client, market, profile });
 
-  // Try AI generation up to 2 times. Body must be substantive (>=400 chars, >=1 H2).
+  // Try PRIMARY_MODEL first (marquee quality), then FALLBACK_MODEL (flash) on failure.
+  // Body must be substantive (>=400 chars, >=1 H2).
+  const modelChain = [PRIMARY_MODEL, FALLBACK_MODEL];
   let parsed: any = null;
   let lastErr = "";
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < modelChain.length; attempt++) {
+    const model = modelChain[attempt];
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -73,14 +76,26 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
         response_format: { type: "json_object" },
       }),
     });
-    if (!aiRes.ok) { lastErr = `AI HTTP ${aiRes.status}: ${await aiRes.text()}`; continue; }
+    const warnIfPrimary = (reason: string) => {
+      if (attempt === 0) console.warn(`generate-post: primary model ${PRIMARY_MODEL} failed (${reason}), retrying with ${FALLBACK_MODEL}`);
+    };
+    if (!aiRes.ok) {
+      lastErr = `AI HTTP ${aiRes.status} on ${model}: ${await aiRes.text()}`;
+      warnIfPrimary(lastErr);
+      continue;
+    }
     const aiJson = await aiRes.json();
     const content = aiJson.choices?.[0]?.message?.content ?? "";
     let candidate: any = null;
-    try { candidate = JSON.parse(content); } catch { lastErr = "AI returned non-JSON"; continue; }
+    try { candidate = JSON.parse(content); } catch {
+      lastErr = `AI returned non-JSON on ${model}`;
+      warnIfPrimary(lastErr);
+      continue;
+    }
     const body = typeof candidate?.body === "string" ? candidate.body : "";
     if (body.length < 400 || !/\n##\s+/.test(body)) {
-      lastErr = `AI body too short or missing H2 (len=${body.length})`;
+      lastErr = `AI body too short or missing H2 on ${model} (len=${body.length})`;
+      warnIfPrimary(lastErr);
       continue;
     }
     parsed = candidate;
