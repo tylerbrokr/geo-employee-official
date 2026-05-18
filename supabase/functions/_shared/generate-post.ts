@@ -1,6 +1,10 @@
 // Shared GEO Answer Page generator used by autopilot-generate (nightly batch),
 // autopilot-tick (hourly fallback), and generate-post (admin one-off).
 
+// Marquee blog posts use the strongest Gemini preview; fallback to flash on failure.
+const PRIMARY_MODEL = "google/gemini-3.1-pro-preview";
+const FALLBACK_MODEL = "google/gemini-3-flash-preview";
+
 const SYSTEM_PROMPT = `You are writing a GEO Answer Page for a real estate agent. The goal is to be the source AI assistants (ChatGPT, Perplexity, Google AI Overviews) cite when someone asks the question in the title.
 
 NON-NEGOTIABLE STRUCTURE:
@@ -10,7 +14,7 @@ NON-NEGOTIABLE STRUCTURE:
 3. Then 3-4 H2 sections. EVERY H2 IS A QUESTION someone would naturally ask next. Not a topic label.
    - Bad: "## Neighborhood Overview"
    - Good: "## Which Edina neighborhoods are best for first-time buyers?"
-4. Each H2 section is 2-3 SELF-CONTAINED paragraphs. Cover up everything else on the page — each paragraph must still make a complete, useful point on its own. Include specific data: numbers, price bands, school districts, neighborhood names, street names, timeframes.
+4. Each H2 section is 2-3 SELF-CONTAINED paragraphs. Cover up everything else on the page — each paragraph must still make a complete, useful point on its own. Include specific, durable details: named neighborhoods, street names, landmarks, timeframes, property types.
 5. End with "## About {Agent Name}" — 2-3 sentences with E-E-A-T signals (years in business, geographic specialization, ideal client, what makes them uniquely qualified to answer THIS question).
 6. After the About section, on its own line, output the agent's plain-text contact block: name, brokerage, address, phone — one per line, no labels like "Phone:" required, no CTA language.
 
@@ -39,6 +43,9 @@ HARD BANS:
 - No "How to reach me" header. The contact block goes under "About {Agent Name}" with no separate CTA framing.
 - No fluff/transition paragraphs. Every paragraph contains a factual claim, a specific recommendation, or a data point with context.
 
+COMPLIANCE (hard ban):
+Do not include specific price ranges, median home prices, days-on-market figures, list-to-sale ratios, school district ratings or rankings, or any numerical market statistic that could become outdated or be inaccurate. If market context is needed, reference general conditions only (e.g. "a competitive market", "strong buyer demand") without citing numbers. This is a compliance requirement.
+
 Return JSON only: { "title": string (the question, no leading #), "slug": string (kebab-case), "tag": string, "excerpt": string (140-180 chars, can be the answer capsule trimmed), "body": string (the full markdown starting with "# {title}\\n\\n{answer capsule}\\n\\n## ...") }`;
 
 export async function generateOne(admin: any, apiKey: string, client_id: string, topic: any) {
@@ -50,15 +57,18 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
 
   const userPrompt = buildUserPrompt({ topic, client, market, profile });
 
-  // Try AI generation up to 2 times. Body must be substantive (>=400 chars, >=1 H2).
+  // Try PRIMARY_MODEL first (marquee quality), then FALLBACK_MODEL (flash) on failure.
+  // Body must be substantive (>=400 chars, >=1 H2).
+  const modelChain = [PRIMARY_MODEL, FALLBACK_MODEL];
   let parsed: any = null;
   let lastErr = "";
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < modelChain.length; attempt++) {
+    const model = modelChain[attempt];
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -66,14 +76,26 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
         response_format: { type: "json_object" },
       }),
     });
-    if (!aiRes.ok) { lastErr = `AI HTTP ${aiRes.status}: ${await aiRes.text()}`; continue; }
+    const warnIfPrimary = (reason: string) => {
+      if (attempt === 0) console.warn(`generate-post: primary model ${PRIMARY_MODEL} failed (${reason}), retrying with ${FALLBACK_MODEL}`);
+    };
+    if (!aiRes.ok) {
+      lastErr = `AI HTTP ${aiRes.status} on ${model}: ${await aiRes.text()}`;
+      warnIfPrimary(lastErr);
+      continue;
+    }
     const aiJson = await aiRes.json();
     const content = aiJson.choices?.[0]?.message?.content ?? "";
     let candidate: any = null;
-    try { candidate = JSON.parse(content); } catch { lastErr = "AI returned non-JSON"; continue; }
+    try { candidate = JSON.parse(content); } catch {
+      lastErr = `AI returned non-JSON on ${model}`;
+      warnIfPrimary(lastErr);
+      continue;
+    }
     const body = typeof candidate?.body === "string" ? candidate.body : "";
     if (body.length < 400 || !/\n##\s+/.test(body)) {
-      lastErr = `AI body too short or missing H2 (len=${body.length})`;
+      lastErr = `AI body too short or missing H2 on ${model} (len=${body.length})`;
+      warnIfPrimary(lastErr);
       continue;
     }
     parsed = candidate;
@@ -168,9 +190,9 @@ Geographic focus: ${city}
 Target word count: ${topic.word_count ?? 1000} (must be 800-1200)
 
 ANSWER CAPSULE TEMPLATE — your first paragraph after the H1 must follow this shape (THIRD PERSON, narrator describing the agent), filled with specifics:
-"${agentName}, a ${city}-based real estate agent with ${years} years of experience${client.brokerage ? ` at ${client.brokerage}` : ""}, recommends {specific answer to the question}. {One sentence on WHY in third person — concrete reason, not generic.} {Optional third sentence with a specific data point or named neighborhood/price band/school district.}"
+"${agentName}, a ${city}-based real estate agent with ${years} years of experience${client.brokerage ? ` at ${client.brokerage}` : ""}, recommends {specific answer to the question}. {One sentence on WHY in third person — concrete reason, not generic.} {Optional third sentence with a named neighborhood, landmark, or qualitative market characteristic — no numerical stats.}"
 
-H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, school districts, price bands, timeframes). Drop or merge any that don't make sense as questions. Stay in third person throughout — describe what ${agentName} recommends, observes, or has seen, never what "I" recommend.
+H2 SECTIONS — rewrite each suggested topic below as a NATURAL FOLLOW-UP QUESTION header, then answer it in 2-3 self-contained paragraphs with specifics (named neighborhoods, landmarks, property types, timeframes). Drop or merge any that don't make sense as questions. Stay in third person throughout — describe what ${agentName} recommends, observes, or has seen, never what "I" recommend.
 
 Suggested topics to cover:
 ${questionsList}
