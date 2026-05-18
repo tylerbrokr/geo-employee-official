@@ -55,6 +55,12 @@ const ITEMS: ItemMeta[] = [
     url: "https://www.facebook.com/business/",
     how: "Open the agent's Facebook business page, edit About, and confirm phone + address + brokerage match the canonical NAP.",
   },
+  {
+    key: "custom_domain_connected",
+    title: "Custom domain connected",
+    url: "/portal/my-site",
+    how: "Connect a custom domain on the My Site page. DNS verified and SSL active. Subdomains carry less trust with search engines and AI crawlers.",
+  },
 ];
 
 interface NapData {
