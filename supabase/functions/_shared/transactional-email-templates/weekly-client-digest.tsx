@@ -310,6 +310,7 @@ const signature: React.CSSProperties = {
   color: ink,
   lineHeight: 1.6,
   margin: 0,
+  fontWeight: 600,
 }
 
 const signatureMuted: React.CSSProperties = {
