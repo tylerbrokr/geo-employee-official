@@ -4,7 +4,7 @@
 // Behavior per client:
 //  1. Count posts in BUFFER_STATUSES.
 //  2. If < TARGET_BUFFER, pull next queued topics and generate one post each.
-//  3. Insert each new post as status = 'scheduled', scheduled_for = NULL.
+//  3. Insert each new post as status = 'scheduled', scheduled_for = computeNextScheduledFor().
 //  4. Mark topic 'used' only after successful insert.
 //  5. If topic queue empty mid-batch, invoke generate-master-topics with replenish.
 //  6. Per-client failures logged, do not block other clients.
