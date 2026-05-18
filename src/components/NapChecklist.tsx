@@ -180,8 +180,8 @@ export function NapChecklist({ clientId }: { clientId: string }) {
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${isDone ? "line-through text-ink/40" : ""}`}>{meta.title}</div>
                     <div className="text-xs text-ink/50 mt-1">{meta.how}</div>
-                    <a href={meta.url} target="_blank" rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
-                      Open {new URL(meta.url).hostname.replace("www.", "")} →
+                    <a href={meta.url} target={meta.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
+                      Open {meta.url.startsWith("http") ? new URL(meta.url).hostname.replace("www.", "") : meta.url} →
                     </a>
                   </div>
                 </div>
