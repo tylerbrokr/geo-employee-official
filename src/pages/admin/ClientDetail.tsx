@@ -213,7 +213,12 @@ export default function AdminClientDetail() {
           <TabsTrigger value="domain">Domain</TabsTrigger>
           <TabsTrigger value="copy">Site copy</TabsTrigger>
           <TabsTrigger value="areas">Areas</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profiles" className="mt-6">
+          {clientId && <NapChecklist clientId={clientId} />}
+        </TabsContent>
 
         <TabsContent value="domain" className="mt-6">
           {clientId && <DomainTab clientId={clientId} />}
@@ -250,6 +255,14 @@ export default function AdminClientDetail() {
           </div>
 
           {clientId && <MarketsCard clientId={clientId} market={market} onSaved={load} />}
+
+          {clientId && (
+            <PublishDaysCard
+              clientId={clientId}
+              initialDays={Array.isArray(client.autopilot_days) ? client.autopilot_days : []}
+              onSaved={load}
+            />
+          )}
 
           <NapCard client={client} onSaved={load} />
 
