@@ -34,7 +34,7 @@ const DEFAULTS = {
     'Once you finish, your site goes into production and posts begin publishing on your schedule.',
   ],
   cta_label: 'Open the intake',
-  signature_line_1: 'The GEO team',
+  signature_line_1: 'Blake and Tyler',
   signature_line_2: 'The Inner Cirql',
 }
 
