@@ -37,6 +37,8 @@ export default function AdminClientDetail() {
   const [goingLive, setGoingLive] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [overrideReadiness, setOverrideReadiness] = useState(false);
+  const [overrideBanner, setOverrideBanner] = useState<string[] | null>(null);
 
   const deleteClient = async () => {
     if (!clientId) return;
@@ -128,6 +130,16 @@ export default function AdminClientDetail() {
 
   const goLive = async () => {
     if (!clientId) return;
+    const completeness = computeCompleteness(client, market);
+    if (!completeness.ready) {
+      if (!overrideReadiness) return;
+      const ok = confirm(
+        `This client is missing: ${completeness.missing.join(", ")}.\n\nGo live anyway?`
+      );
+      if (!ok) return;
+      console.warn(`[goLive override] client=${clientId} missing=${completeness.missing.join(", ")}`);
+      setOverrideBanner(completeness.missing);
+    }
     setGoingLive(true);
     const existing: number[] = Array.isArray(client?.autopilot_days) ? client.autopilot_days : [];
     const todayDow = new Date().getUTCDay();
@@ -173,10 +185,27 @@ export default function AdminClientDetail() {
 
   const stage = client.pipeline_stage ?? "draft";
   const queuedCount = topics.filter((t) => t.status === "queued").length;
-  const canGoLive = stage === "topics_ready" || (queuedCount >= 1 && !client.autopilot_enabled);
+  const completeness = computeCompleteness(client, market);
+  const stageReady = stage === "topics_ready" || (queuedCount >= 1 && !client.autopilot_enabled);
+  const canGoLive = stageReady && (completeness.ready || overrideReadiness);
 
   return (
     <div className="space-y-8">
+      {overrideBanner && (
+        <div className="border border-[hsl(45_70%_45%/0.4)] bg-[hsl(45_90%_95%)] px-4 py-3 text-sm flex items-start justify-between gap-4">
+          <div>
+            <span className="font-semibold">Activated with missing readiness fields:</span>{" "}
+            {overrideBanner.join(", ")}.
+          </div>
+          <button
+            onClick={() => setOverrideBanner(null)}
+            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
@@ -193,7 +222,13 @@ export default function AdminClientDetail() {
           {client.autopilot_enabled ? (
             <Button size="sm" variant="outline" onClick={pauseAutopilot}>Pause autopilot</Button>
           ) : (
-            <Button size="sm" onClick={goLive} disabled={goingLive || !canGoLive} className="gap-2">
+            <Button
+              size="sm"
+              onClick={goLive}
+              disabled={goingLive || !canGoLive}
+              className="gap-2"
+              title={!stageReady ? "Generate topics first." : (!completeness.ready && !overrideReadiness ? "Complete the readiness checklist to go live." : undefined)}
+            >
               <Rocket className="w-4 h-4" /> {goingLive ? "Starting..." : "Go Live"}
             </Button>
           )}
@@ -202,6 +237,32 @@ export default function AdminClientDetail() {
           </Button>
         </div>
       </div>
+
+      {!client.autopilot_enabled && !completeness.ready && (
+        <div className="findr-card">
+          <p className="section-label mb-3">GO-LIVE READINESS</p>
+          <div className="space-y-1.5 text-sm">
+            {completeness.checks.map((c) => (
+              <div key={c.key} className="flex items-center gap-2">
+                <span className={c.pass ? "text-[hsl(160_84%_30%)]" : "text-destructive"}>
+                  {c.pass ? "✓" : "✗"}
+                </span>
+                <span className={c.pass ? "" : "font-medium"}>{c.label}</span>
+                {!c.pass && <span className="text-xs text-muted-foreground">— missing</span>}
+              </div>
+            ))}
+          </div>
+          <label className="mt-4 flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={overrideReadiness}
+              onChange={(e) => setOverrideReadiness(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            Override readiness check (testing only)
+          </label>
+        </div>
+      )}
 
       {clientId && <VisibilityCard clientId={clientId} />}
 
@@ -426,6 +487,25 @@ export default function AdminClientDetail() {
     </div>
   );
 }
+
+// Minimum viable fields before an admin can flip autopilot on. Mirrors what
+// the renderer and LLM schema citations need to look credible on day one.
+function computeCompleteness(client: any, market: any) {
+  const checks = [
+    { key: "phone_e164", label: "Public phone number (E.164)", pass: !!client?.phone_e164 },
+    { key: "street_address", label: "Street address", pass: !!client?.street_address },
+    { key: "city", label: "City", pass: !!client?.city },
+    { key: "state", label: "State", pass: !!client?.state },
+    { key: "primary_city", label: "Primary market city", pass: !!market?.primary_city },
+    { key: "headshot_or_logo", label: "Headshot or logo uploaded", pass: !!(client?.headshot_url || client?.logo_url) },
+  ];
+  return {
+    ready: checks.every((c) => c.pass),
+    checks,
+    missing: checks.filter((c) => !c.pass).map((c) => c.label),
+  };
+}
+
 
 // NAP (Name / Address / Phone) — public-facing data the renderer cites for LLM
 // authority and LocalBusiness schema. Not collected in onboarding because it's
