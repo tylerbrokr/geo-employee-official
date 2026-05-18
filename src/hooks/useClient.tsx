@@ -17,6 +17,7 @@ export interface ClientRow {
   site_url: string | null;
   site_status: "pending" | "building" | "live";
   autopilot_day: number | null;
+  autopilot_days: number[] | null;
   autopilot_enabled: boolean;
   last_autopublish_at: string | null;
 }
