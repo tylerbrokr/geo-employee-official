@@ -185,10 +185,27 @@ export default function AdminClientDetail() {
 
   const stage = client.pipeline_stage ?? "draft";
   const queuedCount = topics.filter((t) => t.status === "queued").length;
-  const canGoLive = stage === "topics_ready" || (queuedCount >= 1 && !client.autopilot_enabled);
+  const completeness = computeCompleteness(client, market);
+  const stageReady = stage === "topics_ready" || (queuedCount >= 1 && !client.autopilot_enabled);
+  const canGoLive = stageReady && (completeness.ready || overrideReadiness);
 
   return (
     <div className="space-y-8">
+      {overrideBanner && (
+        <div className="border border-[hsl(45_70%_45%/0.4)] bg-[hsl(45_90%_95%)] px-4 py-3 text-sm flex items-start justify-between gap-4">
+          <div>
+            <span className="font-semibold">Activated with missing readiness fields:</span>{" "}
+            {overrideBanner.join(", ")}.
+          </div>
+          <button
+            onClick={() => setOverrideBanner(null)}
+            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <Link to="/admin" className="text-sm text-primary hover:underline">← Clients</Link>
@@ -205,7 +222,13 @@ export default function AdminClientDetail() {
           {client.autopilot_enabled ? (
             <Button size="sm" variant="outline" onClick={pauseAutopilot}>Pause autopilot</Button>
           ) : (
-            <Button size="sm" onClick={goLive} disabled={goingLive || !canGoLive} className="gap-2">
+            <Button
+              size="sm"
+              onClick={goLive}
+              disabled={goingLive || !canGoLive}
+              className="gap-2"
+              title={!stageReady ? "Generate topics first." : (!completeness.ready && !overrideReadiness ? "Complete the readiness checklist to go live." : undefined)}
+            >
               <Rocket className="w-4 h-4" /> {goingLive ? "Starting..." : "Go Live"}
             </Button>
           )}
@@ -214,6 +237,32 @@ export default function AdminClientDetail() {
           </Button>
         </div>
       </div>
+
+      {!client.autopilot_enabled && !completeness.ready && (
+        <div className="findr-card">
+          <p className="section-label mb-3">GO-LIVE READINESS</p>
+          <div className="space-y-1.5 text-sm">
+            {completeness.checks.map((c) => (
+              <div key={c.key} className="flex items-center gap-2">
+                <span className={c.pass ? "text-[hsl(160_84%_30%)]" : "text-destructive"}>
+                  {c.pass ? "✓" : "✗"}
+                </span>
+                <span className={c.pass ? "" : "font-medium"}>{c.label}</span>
+                {!c.pass && <span className="text-xs text-muted-foreground">— missing</span>}
+              </div>
+            ))}
+          </div>
+          <label className="mt-4 flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={overrideReadiness}
+              onChange={(e) => setOverrideReadiness(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            Override readiness check (testing only)
+          </label>
+        </div>
+      )}
 
       {clientId && <VisibilityCard clientId={clientId} />}
 
