@@ -377,9 +377,8 @@ export default function AdminClientDetail() {
           {(() => {
             const buffer = posts.filter((p) => ["draft", "pending_review", "scheduled"].includes(p.status)).length;
             const lastAuto = client.last_autopublish_at ? new Date(client.last_autopublish_at).toLocaleDateString() : "never";
-            const dayLabel = client.autopilot_day != null
-              ? ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][client.autopilot_day]
-              : "—";
+            const days: number[] = Array.isArray(client.autopilot_days) ? client.autopilot_days : [];
+            const dayLabel = formatPublishDays(days);
             const upcoming = posts
               .filter((p) => p.status === "scheduled" && p.scheduled_for)
               .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())[0];
@@ -389,8 +388,8 @@ export default function AdminClientDetail() {
             return (
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground space-x-4">
-                  <span>Drafts ready: <span className="font-medium text-foreground">{buffer} / 4</span></span>
-                  <span>Publish day: <span className="font-medium text-foreground">{dayLabel}</span></span>
+                  <span>Drafts ready: <span className="font-medium text-foreground">{buffer} / 8</span></span>
+                  <span>Publish days: <span className="font-medium text-foreground">{dayLabel}</span></span>
                   <span>Last autopublish: <span className="font-medium text-foreground">{lastAuto}</span></span>
                   <span>Next: <span className="font-medium text-foreground">{nextLabel}</span></span>
                 </div>
