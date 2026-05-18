@@ -51,21 +51,49 @@ function relTime(iso: string): string {
   return `${Math.floor(h / 24)} d ago`;
 }
 
+const DAY_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function formatDays(days: number[]): string {
+  return [...days].sort((a,b)=>a-b).map(d => DAY_SHORT[d]).filter(Boolean).join("/");
+}
+
 export function VisibilityCard({ clientId }: { clientId: string }) {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [site, setSite] = useState<{ last_indexnow_at: string | null; last_indexnow_count: number | null } | null>(null);
+  const [days, setDays] = useState<number[]>([]);
+  const [bufferCount, setBufferCount] = useState<number>(0);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("client_visibility_reports")
-      .select("*")
-      .eq("client_id", clientId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setReport(data as any);
+    const [{ data: r }, { data: s }, { data: c }, { count }] = await Promise.all([
+      supabase
+        .from("client_visibility_reports")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("client_sites")
+        .select("last_indexnow_at,last_indexnow_count")
+        .eq("client_id", clientId)
+        .maybeSingle(),
+      supabase
+        .from("clients")
+        .select("autopilot_days,autopilot_enabled")
+        .eq("id", clientId)
+        .maybeSingle(),
+      supabase
+        .from("posts")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .in("status", ["draft", "pending_review", "scheduled"]),
+    ]);
+    setReport(r as any);
+    setSite((s as any) ?? null);
+    setDays(((c as any)?.autopilot_days ?? []) as number[]);
+    setBufferCount(count ?? 0);
     setLoading(false);
   };
 
@@ -138,6 +166,19 @@ export function VisibilityCard({ clientId }: { clientId: string }) {
 
       <div className="w-full h-2 bg-muted overflow-hidden mb-5">
         <div className="h-full transition-all" style={{ width: `${report.total_score}%`, background: b.color }} />
+      </div>
+
+      <div className="text-xs text-muted-foreground mb-4 flex flex-wrap gap-x-4 gap-y-1">
+        <span>
+          autopilot{" "}
+          {days.length ? <span className="font-medium text-foreground">on · {formatDays(days)} · {bufferCount} buffered draft{bufferCount === 1 ? "" : "s"}</span> : <span className="font-medium text-foreground">off</span>}
+        </span>
+        <span>
+          IndexNow:{" "}
+          {site?.last_indexnow_at
+            ? <span className="font-medium text-foreground">last ping {relTime(site.last_indexnow_at)} · {site.last_indexnow_count ?? 0} URL{(site.last_indexnow_count ?? 0) === 1 ? "" : "s"}</span>
+            : <span className="font-medium text-foreground">no pings yet</span>}
+        </span>
       </div>
 
       <div className="grid grid-cols-4 gap-3">

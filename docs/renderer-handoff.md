@@ -718,3 +718,35 @@ After deploying this change, hit "Purge cache" on each active client's Domain ta
 - [ ] Accent never used as a background behind text; only on white
 - [ ] No em dashes, no emojis, no `---` dividers visible in the rendered output
 - [ ] JSON-LD `Article` includes `articleBody` and `wordCount`
+
+---
+
+## 16. IndexNow key file (per-site)
+
+Each site has an `indexnow_key` on `client_sites`. The renderer must serve it as plain text at:
+
+```
+GET https://{host}/{indexnow_key}.txt
+```
+
+The response body is exactly the key (no whitespace, content-type `text/plain`). This is what IndexNow uses to verify ownership before accepting submitted URLs.
+
+Implementation (Next.js app router):
+
+```ts
+// app/[key]/route.ts
+export async function GET(req: Request, { params }: { params: { key: string } }) {
+  const host = new URL(req.url).hostname;
+  const key = params.key.replace(/\.txt$/, '');
+  const { data } = await supabaseAdmin
+    .from('client_sites')
+    .select('indexnow_key')
+    .or(`custom_domain.eq.${host},subdomain.eq.${host.split('.')[0]}`)
+    .maybeSingle();
+  if (!data || data.indexnow_key !== key) return new Response('Not found', { status: 404 });
+  return new Response(data.indexnow_key, { headers: { 'content-type': 'text/plain' } });
+}
+```
+
+The platform pings IndexNow after every post publish (post URL, /blog, /sitemap.xml). No renderer-side action is needed once this route is live.
+

@@ -103,11 +103,15 @@ export async function generateOne(admin: any, apiKey: string, client_id: string,
   return inserted;
 }
 
-// Next publish slot for a client: pick the next occurrence of autopilot_day strictly after
-// max(now, last_autopublish_at, latest existing scheduled_for for this client) + 7 days when chaining.
+// Next publish slot for a client: walk day-by-day from the anchor (now or latest
+// scheduled post) until we hit a weekday in client.autopilot_days. Baseline cadence
+// is 2 posts/week (e.g. Mon + Thu) so this naturally yields a ~3-4 day spacing.
 async function computeNextScheduledFor(admin: any, client_id: string, client: any): Promise<string | null> {
-  const dow = client?.autopilot_day;
-  if (dow === null || dow === undefined) return null;
+  const days: number[] = Array.isArray(client?.autopilot_days) && client.autopilot_days.length
+    ? client.autopilot_days
+    : (client?.autopilot_day !== null && client?.autopilot_day !== undefined ? [client.autopilot_day] : []);
+  if (!days.length) return null;
+  const daySet = new Set<number>(days.map((d: any) => Number(d)));
 
   const { data: latest } = await admin
     .from("posts")
@@ -123,20 +127,20 @@ async function computeNextScheduledFor(admin: any, client_id: string, client: an
   const lastPub = client?.last_autopublish_at ? new Date(client.last_autopublish_at) : null;
   const latestSched = latest?.scheduled_for ? new Date(latest.scheduled_for) : null;
 
-  if (latestSched) {
-    // Chain: next slot is +7 days from latest scheduled.
-    const next = new Date(latestSched.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return next.toISOString();
-  }
+  const anchor = latestSched
+    ? latestSched
+    : (lastPub && lastPub > now ? lastPub : now);
 
-  // First scheduled post: next occurrence of autopilot_day after max(now, lastPub).
-  const anchor = lastPub && lastPub > now ? lastPub : now;
+  // Walk forward starting the day after the anchor until we hit one of the days.
   const next = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate(), 14, 0, 0));
-  // Walk forward until we hit autopilot_day and it's strictly after anchor.
-  while (next.getUTCDay() !== dow || next <= anchor) {
+  next.setUTCDate(next.getUTCDate() + 1);
+  for (let i = 0; i < 14; i++) {
+    if (daySet.has(next.getUTCDay()) && next > anchor) {
+      return next.toISOString();
+    }
     next.setUTCDate(next.getUTCDate() + 1);
   }
-  return next.toISOString();
+  return null;
 }
 
 export function buildUserPrompt({ topic, client, market, profile }: any): string {

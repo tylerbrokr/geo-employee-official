@@ -19,7 +19,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const TARGET_BUFFER = 4;
+// Baseline cadence: 2 posts/week, so 8 buffered drafts ≈ 2.5 weeks of runway.
+const TARGET_BUFFER = 8;
 const CONCURRENCY = 5;
 
 

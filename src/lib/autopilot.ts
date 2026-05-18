@@ -1,10 +1,20 @@
 // Helpers for surfacing autopilot publish schedule in the UI.
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function weekdayName(dow: number | null | undefined): string | null {
   if (dow === null || dow === undefined) return null;
-  return WEEKDAYS[dow] ?? null;
+  return WEEKDAYS_LONG[dow] ?? null;
+}
+
+export function weekdayList(
+  days: number[] | null | undefined,
+  variant: "short" | "long" = "short",
+): string | null {
+  if (!days || !days.length) return null;
+  const arr = variant === "long" ? WEEKDAYS_LONG : WEEKDAYS_SHORT;
+  return [...days].sort((a, b) => a - b).map((d) => arr[d]).filter(Boolean).join(" · ");
 }
 
 export function nextScheduledPost<T extends { status: string; scheduled_for: string | null }>(

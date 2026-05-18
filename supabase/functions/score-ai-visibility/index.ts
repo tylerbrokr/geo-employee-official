@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
       { data: specialties },
       { data: areas },
       { data: posts },
+      { data: napItems },
     ] = await Promise.all([
       admin.from("clients").select("*").eq("id", client_id).maybeSingle(),
       admin.from("client_markets").select("*").eq("client_id", client_id).maybeSingle(),
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
       admin.from("client_specialties").select("specialty").eq("client_id", client_id),
       admin.from("client_areas").select("*").eq("client_id", client_id),
       admin.from("posts").select("*").eq("client_id", client_id),
+      admin.from("nap_checklist").select("item_key,status").eq("client_id", client_id),
     ]);
 
     if (!client) return json({ error: "client not found" }, 404);
@@ -175,6 +177,16 @@ Deno.serve(async (req) => {
       `${napFilled}/5 NAP fields populated`,
       "Open the client's Overview tab and complete the Public NAP block.",
       napFilled >= 3 ? 3 : 0,
+    ));
+
+    const napDone = (napItems ?? []).filter((r: any) => r.status === "done").length;
+    const napTotal = (napItems ?? []).length || 6;
+    checks.push(check(
+      "nap_consistency", "Profile NAP verified across GMB, Bing, Zillow, Realtor, Facebook", "profile", 5,
+      napDone >= 5 ? true : napDone >= 3 ? "partial" : false,
+      `${napDone}/${napTotal} profile checklist items confirmed`,
+      "Have the client open Portal → Profiles and confirm each item matches the canonical NAP.",
+      napDone >= 3 ? 3 : 0,
     ));
 
     const headshot = !!client.headshot_url;

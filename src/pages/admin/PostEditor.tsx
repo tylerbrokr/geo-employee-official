@@ -58,8 +58,14 @@ export default function AdminPostEditor() {
     };
     const { error } = await supabase.from("posts").update(updates).eq("id", post.id);
     setSaving(false);
-    if (error) toast.error(error.message);
-    else toast.success(publish ? "Published" : "Saved");
+    if (error) { toast.error(error.message); return; }
+    toast.success(publish ? "Published" : "Saved");
+    if (publish && post.client_id && post.slug) {
+      // Fire-and-forget IndexNow ping. Failures surface only in edge logs.
+      supabase.functions.invoke("submit-indexnow", {
+        body: { client_id: post.client_id, slug: post.slug },
+      }).catch(() => {});
+    }
   };
 
   if (!post) return <div className="text-sm text-muted-foreground">Loading...</div>;

@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
       provisioned_at: existingSite?.provisioned_at ?? new Date().toISOString(),
       dns_verified: customDomain ? (existingSite?.custom_domain === customDomain ? existingSite?.dns_verified ?? false : false) : true,
       agent_display_name: existingSite?.agent_display_name ?? profile?.full_name ?? null,
+      indexnow_key: existingSite?.indexnow_key ?? crypto.randomUUID().replace(/-/g, ""),
     };
 
     if (existingSite) {
