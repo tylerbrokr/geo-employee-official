@@ -11,7 +11,8 @@ import { nextScheduledPost, weekdayList, formatPublishDate } from "@/lib/autopil
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { client, isLive, liveUrl } = useClient();
+  const { client, site, isLive, liveUrl } = useClient();
+  const needsCustomDomain = !!client && !site?.custom_domain;
   const [counts, setCounts] = useState({ published: 0, scheduled: 0, thisMonth: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<any[]>([]);
