@@ -40,6 +40,7 @@ export async function submitIndexNow(
     });
 
     const ok = res.status >= 200 && res.status < 300;
+    let errorText: string | null = null;
     if (ok) {
       await admin
         .from("client_sites")
@@ -49,13 +50,34 @@ export async function submitIndexNow(
         })
         .eq("client_id", client_id);
     } else {
-      console.warn(`[indexnow] non-2xx for ${host}: ${res.status} ${await res.text().catch(() => "")}`);
+      errorText = await res.text().catch(() => "");
+      console.warn(`[indexnow] non-2xx for ${host}: ${res.status} ${errorText}`);
     }
+
+    await admin.from("indexnow_submissions").insert({
+      client_id,
+      url_count: urlList.length,
+      status: ok ? "success" : "failure",
+      http_status: res.status,
+      error_message: ok ? null : (errorText || `HTTP ${res.status}`),
+      urls_sample: urlList.slice(0, 5),
+    });
 
     return { ok, host, count: urlList.length, status: res.status };
   } catch (e: any) {
-    console.warn(`[indexnow] failed for client=${client_id}: ${e?.message ?? e}`);
-    return { ok: false, count: 0, error: e?.message ?? String(e) };
+    const msg = e?.message ?? String(e);
+    console.warn(`[indexnow] failed for client=${client_id}: ${msg}`);
+    try {
+      await admin.from("indexnow_submissions").insert({
+        client_id,
+        url_count: paths.length,
+        status: "failure",
+        http_status: null,
+        error_message: msg,
+        urls_sample: paths.slice(0, 5),
+      });
+    } catch (_) { /* swallow */ }
+    return { ok: false, count: 0, error: msg };
   }
 }
 
