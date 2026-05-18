@@ -556,6 +556,39 @@ export type Database = {
         }
         Relationships: []
       }
+      indexnow_submissions: {
+        Row: {
+          client_id: string
+          error_message: string | null
+          http_status: number | null
+          id: string
+          status: string
+          submitted_at: string
+          url_count: number
+          urls_sample: string[]
+        }
+        Insert: {
+          client_id: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          status: string
+          submitted_at?: string
+          url_count: number
+          urls_sample?: string[]
+        }
+        Update: {
+          client_id?: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          status?: string
+          submitted_at?: string
+          url_count?: number
+          urls_sample?: string[]
+        }
+        Relationships: []
+      }
       intake_status: {
         Row: {
           client_id: string

@@ -13,6 +13,7 @@ import { MarketsCard } from "@/components/admin/MarketsCard";
 import { VisibilityCard } from "@/components/admin/VisibilityCard";
 import { PublishDaysCard, formatPublishDays } from "@/components/admin/PublishDaysCard";
 import { NapChecklist } from "@/components/NapChecklist";
+import { EngineLog } from "@/components/EngineLog";
 
 const STAGE_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -275,7 +276,12 @@ export default function AdminClientDetail() {
           <TabsTrigger value="copy">Site copy</TabsTrigger>
           <TabsTrigger value="areas">Areas</TabsTrigger>
           <TabsTrigger value="profiles">Profiles</TabsTrigger>
+          <TabsTrigger value="engine">Engine</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="engine" className="mt-6">
+          {clientId && <EngineLog clientId={clientId} limit={50} />}
+        </TabsContent>
 
         <TabsContent value="profiles" className="mt-6">
           {clientId && <NapChecklist clientId={clientId} />}

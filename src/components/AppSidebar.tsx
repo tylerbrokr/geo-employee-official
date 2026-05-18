@@ -11,7 +11,17 @@ const navItems = [
   { label: "My Site", path: "/portal/my-site", icon: SiteIcon },
   { label: "Market", path: "/portal/market", icon: MarketIcon },
   { label: "Profiles", path: "/portal/profiles", icon: ProfilesIcon },
+  { label: "Engine", path: "/portal/engine", icon: EngineIcon },
 ];
+
+function EngineIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="square" strokeLinejoin="miter">
+      <circle cx="9" cy="9" r="6.5" />
+      <path d="M9 4v5l3 2" />
+    </svg>
+  );
+}
 
 function ProfilesIcon({ className }: { className?: string }) {
   return (

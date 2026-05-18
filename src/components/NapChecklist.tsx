@@ -55,6 +55,12 @@ const ITEMS: ItemMeta[] = [
     url: "https://www.facebook.com/business/",
     how: "Open the agent's Facebook business page, edit About, and confirm phone + address + brokerage match the canonical NAP.",
   },
+  {
+    key: "custom_domain_connected",
+    title: "Custom domain connected",
+    url: "/portal/my-site",
+    how: "Connect a custom domain on the My Site page. DNS verified and SSL active. Subdomains carry less trust with search engines and AI crawlers.",
+  },
 ];
 
 interface NapData {
@@ -74,11 +80,39 @@ export function NapChecklist({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [{ data: rows }, { data: c }] = await Promise.all([
+    const [{ data: rows }, { data: c }, { data: siteRow }] = await Promise.all([
       supabase.from("nap_checklist").select("*").eq("client_id", clientId),
       supabase.from("clients").select("phone_e164,street_address,city,state,postal_code,business_name,brokerage,owner_user_id").eq("id", clientId).maybeSingle(),
+      supabase.from("client_sites").select("custom_domain,dns_verified").eq("client_id", clientId).maybeSingle(),
     ]);
-    setItems((rows as NapItem[]) ?? []);
+    const rowList = (rows as NapItem[]) ?? [];
+
+    // Silent auto-mark: if a custom domain is connected and DNS-verified, flip the
+    // checklist item to done in the background without a loading flash.
+    const domainLive = !!(siteRow?.custom_domain && siteRow?.dns_verified);
+    const domainItem = rowList.find((r) => r.item_key === "custom_domain_connected");
+    if (domainLive && domainItem && domainItem.status !== "done") {
+      const now = new Date().toISOString();
+      domainItem.status = "done";
+      domainItem.completed_at = now;
+      // Fire-and-forget; UI already shows done.
+      supabase
+        .from("nap_checklist")
+        .update({ status: "done", completed_at: now })
+        .eq("id", domainItem.id)
+        .then(() => {});
+    } else if (!domainLive && domainItem && domainItem.status === "done" && !domainItem.notes) {
+      // Auto-revert if domain was disconnected (skip if admin left a manual note).
+      domainItem.status = "pending";
+      domainItem.completed_at = null;
+      supabase
+        .from("nap_checklist")
+        .update({ status: "pending", completed_at: null })
+        .eq("id", domainItem.id)
+        .then(() => {});
+    }
+
+    setItems(rowList);
     if (c) {
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", (c as any).owner_user_id).maybeSingle();
       setNap({ ...c, full_name: profile?.full_name ?? null } as NapData);
@@ -146,8 +180,8 @@ export function NapChecklist({ clientId }: { clientId: string }) {
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${isDone ? "line-through text-ink/40" : ""}`}>{meta.title}</div>
                     <div className="text-xs text-ink/50 mt-1">{meta.how}</div>
-                    <a href={meta.url} target="_blank" rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
-                      Open {new URL(meta.url).hostname.replace("www.", "")} →
+                    <a href={meta.url} target={meta.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-xs text-foreground underline mt-1 inline-block">
+                      Open {meta.url.startsWith("http") ? new URL(meta.url).hostname.replace("www.", "") : meta.url} →
                     </a>
                   </div>
                 </div>

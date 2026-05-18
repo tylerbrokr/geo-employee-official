@@ -13,6 +13,7 @@ import MySite from "./pages/MySite";
 import Market from "./pages/Market";
 import Account from "./pages/Account";
 import Profiles from "./pages/Profiles";
+import Engine from "./pages/Engine";
 import Onboarding from "./pages/Onboarding";
 import Unsubscribe from "./pages/Unsubscribe";
 import ResetPassword from "./pages/ResetPassword";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/portal/my-site" element={<RoleGate require="client"><MySite /></RoleGate>} />
             <Route path="/portal/market" element={<RoleGate require="client"><Market /></RoleGate>} />
             <Route path="/portal/profiles" element={<RoleGate require="client"><Profiles /></RoleGate>} />
+            <Route path="/portal/engine" element={<RoleGate require="client"><Engine /></RoleGate>} />
             <Route path="/portal/account" element={<RoleGate require="client"><Account /></RoleGate>} />
 
             {/* Admin */}
